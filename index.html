@@ -7,12 +7,10 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
   
-  <!-- Firebase knižnice -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   
-  <!-- jsPDF a jsPDF AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
   
@@ -72,7 +70,6 @@
   </style>
 </head>
 <body>
-  <!-- Kontajner pre prihlásenie/registráciu -->
   <div id="auth-container">
     <h1>Prihlásenie / Registrácia</h1>
     <div id="auth-message">Žiadny používateľ nie je prihlásený.</div>
@@ -89,7 +86,6 @@
     <button onclick="logout()">Odhlásiť sa</button>
   </div>
 
-  <!-- Kontajner pre kalkulačku -->
   <div id="calculator-container" class="container" style="display:none;">
     <div class="autor-info">Vytvoril a financoval Bruno</div>
     <h1 id="mainTitle">Bruno's Calculator</h1>
@@ -99,40 +95,19 @@
       <div><label for="hourlyWageInput">Hodinová mzda (€): </label><input type="number" id="hourlyWageInput" value="10" min="0" step="0.1" oninput="updateSettings()"></div>
       <div><label for="taxRateInput">Daňové percento (%): </label><input type="number" id="taxRateInput" value="2" min="0" step="0.1" oninput="updateSettings()"></div>
       <div><label for="monthSelect">Mesiac: </label><select id="monthSelect" onchange="changeMonth()">
-        <option value="0">Január</option>
-        <option value="1">Február</option>
-        <option value="2">Marec</option>
-        <option value="3">Apríl</option>
-        <option value="4">Máj</option>
-        <option value="5">Jún</option>
-        <option value="6">Júl</option>
-        <option value="7">August</option>
-        <option value="8">September</option>
-        <option value="9">Október</option>
-        <option value="10">November</option>
-        <option value="11">December</option>
+        <option value="0">Január</option><option value="1">Február</option><option value="2">Marec</option><option value="3">Apríl</option>
+        <option value="4">Máj</option><option value="5">Jún</option><option value="6">Júl</option><option value="7">August</option>
+        <option value="8">September</option><option value="9">Október</option><option value="10">November</option><option value="11">December</option>
       </select></div>
       <div><label for="yearSelect">Rok: </label><select id="yearSelect" onchange="changeYear()"></select></div>
       <div><label for="decimalPlacesSelect">Počet desatinných miest: </label><select id="decimalPlacesSelect" onchange="changeDecimalPlaces()">
-        <option value="1">1</option>
-        <option value="2">2</option>
+        <option value="1">1</option><option value="2">2</option>
       </select></div>
       <button onclick="toggleDarkMode()" class="btn highlight">Prepínať tmavý režim</button>
     </div>
     <div class="table-container">
       <table>
-        <thead>
-          <tr>
-            <th>Deň</th>
-            <th>Príchod</th>
-            <th>Odchod</th>
-            <th>Prestávka</th>
-            <th>Odpracované</th>
-            <th>Hrubá Mzda (€)</th>
-            <th>Čistá Mzda (€)</th>
-            <th>Akcia</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Deň</th><th>Príchod</th><th>Odchod</th><th>Prestávka</th><th>Odpracované</th><th>Hrubá Mzda (€)</th><th>Čistá Mzda (€)</th><th>Akcia</th></tr></thead>
         <tbody id="workDays"></tbody>
       </table>
     </div>
@@ -183,7 +158,7 @@
     const MAX_DATA_SIZE = 4 * 1024 * 1024;
     const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
 
-    // Funkcie pre registráciu, prihlásenie a odhlásenie
+    // Funkcie
     function register() {
       const email = document.getElementById('registerEmail').value;
       const password = document.getElementById('registerPassword').value;
@@ -239,7 +214,7 @@
           await userDocRef.set({ email: user.email, createdAt: new Date().toISOString() });
           console.log("Vytvorený dokument pre:", uid);
         }
-        loadFromFirebase();
+        loadFromFirebase(); // Načítanie po prihlásení
       } else {
         authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
         authContainer.style.display = "block";
@@ -336,23 +311,27 @@
         if (docSnap.exists) {
           const data = docSnap.data();
           console.log("Načítané z Firebase:", data);
+
           monthData = JSON.parse(data.workDaysData || '{}');
           hourlyWage = parseFloat(JSON.parse(data.hourlyWage)) || 10;
           taxRate = parseFloat(JSON.parse(data.taxRate)) / 100 || 0.02;
           decimalPlaces = parseInt(JSON.parse(data.decimalPlaces)) || 1;
           employeeName = JSON.parse(data.employeeName) || '';
           const darkMode = JSON.parse(data.darkMode) || false;
+
           localStorage.setItem('workDaysData', JSON.stringify(monthData));
           localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage));
           localStorage.setItem('taxRate', JSON.stringify(taxRate * 100));
           localStorage.setItem('darkMode', JSON.stringify(darkMode));
           localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
           localStorage.setItem('employeeName', JSON.stringify(employeeName));
+
           hourlyWageInput.value = hourlyWage;
           taxRateInput.value = taxRate * 100;
           decimalPlacesSelect.value = decimalPlaces;
           employeeNameInput.value = employeeName;
-          createTable();
+
+          createTable(); // Rekreačná tabuľka po načítaní
           const monthDays = (monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
           monthDays.forEach((day, index) => {
             const i = index + 1;
@@ -370,6 +349,7 @@
               calculateRow(i);
             }
           });
+
           calculateTotal();
           updateDataSize();
           if (darkMode) toggleDarkMode();
@@ -393,10 +373,12 @@
         const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
         decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1;
         employeeName = JSON.parse(localStorage.getItem('employeeName')) || '';
+
         hourlyWageInput.value = hourlyWage;
         taxRateInput.value = taxRate * 100;
         decimalPlacesSelect.value = decimalPlaces;
         employeeNameInput.value = employeeName;
+
         createTable();
         const data = (monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
         data.forEach((day, index) => {
@@ -596,7 +578,6 @@
       `;
     }
 
-    // Export PDF s vlastným fontom (pre diakritiku)
     function exportToPDF() {
       if (!window.jspdf) {
         alert("Knižnica jsPDF nie je načítaná.");
@@ -604,18 +585,11 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-
-      // Pridanie vlastného fontu:
-      // Vložte svoj Base64 reťazec fontu namiesto "BASE64_FONT_STRING"
-      doc.addFileToVFS("CustomFont.ttf", "BASE64_FONT_STRING");
-      doc.addFont("CustomFont.ttf", "CustomFont", "normal");
-      doc.setFont("CustomFont");
-
+      doc.setFont("Helvetica");
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 25);
-
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -629,7 +603,6 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
-
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
@@ -637,7 +610,6 @@
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
         alternateRowStyles: { fillColor: [245, 245, 245] }
       });
-
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
@@ -651,18 +623,11 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-
-      // Pridanie vlastného fontu:
-      // Vložte svoj Base64 reťazec fontu namiesto "BASE64_FONT_STRING"
-      doc.addFileToVFS("CustomFont.ttf", 8JCAgPGAgKDOlMmY5beo5aOA5J+w4Ze2yLRgx5Re4KK82oTKlMO+4o+E4L6G8oCAmcSsDOuaqPCYjqzGnDbFuCTjjYzhkqThpbDgqZTEuCDgvYDgqK7FmCDXrMuO8JCAgvKAgIjwkICA8bCAgvSAgK/wsICB8LCAgAAAAAAAAPCQgIDgpYoAAADUqfCQgIDwsImOAAAJ8KCAgADwkICB8oCAgxTwsICA8aCAg/CggIIBA/CQgILKvAECAPGAkoTWmgDugIDknY/vv73Quu+/rO+/rO+/rO+/q8K99ICAgPCQgILzoICAAPCQgarwkIG18JCCg/CQgonwkIKY8JCCpfCwgrHwkIK/8JCDg/CQg4vwkIOQ8JCDmvCQg6XwkIOr8JCDv/CQhIjwkISc8JCEpPCQhLPwkIS78JCFh/CQhZHwkIWd8JCFpPCQharwkIWw8KCHrPCQiI3wkIiW8JCInfCQiKPwkIiw8JCJgvCQiYfwkIm58JCKlfCQj4HwkI+P8JCPufCQkITwkJCP8JCSoPCQkrDwkJSb8JCAgyogEPCggILEpPCggIEB8JCCrQIDFPCwgIEU8YCZsMSAAPCggI0C85CAoPCQgIDHmseVx5HHj8eNx4vHhceHxYrvuaUA77KZ77KR77KL772D772A77Ge7pe97oSM7oSHw74AAAAAAAAAAAAAAMWcAMaYAMawx7jIoMmCAAAAAADKpAAAAAAAAAAAAAAAAAAAAAAAAPCgipo58JCQicKy8JCQifCQgIzwkJCJ8KCAjvCQkInwsICy8JCQifGAgJzwkJCJ8ZCApvCQkInxoICc8JCQifGwgYDwkJCJ8oCAjPCQkInykICm8JCQifKwgJTwkJCJ84CAlPCQkInzkISi8JCQifOggLbwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJ8JCQifCQkInwkJCJUjLwspWU8KKWsPCggaPxgIGj4KSB8LKVlPCQoKMAAO+yp++1ru+yiu+1ne+wp++0uO+xpu+xsO+1pe+2pO+omu+oqwAA77Kj8JCAgPKghqwB8KCAg/GAgIbygICM85CAjvOwgJDvv7/wkICC8LCAhPGggIjysICN86CAj/SAgJEB8KCAg/GAgIbygICK85CAjvOwgJDvv7/wkICC8LCAhPGggIjykICN86CAj/SAgJEB8KCAg/GAgIXygICN86CAj/SAgJEB8KCAg/GAgIfygICN86CAj/SAgJEAAfCggIPxgICI85CAjvOwgJAB8JCAnQHwkICSAfCQgJAB87CAgPCQgI4B85CAgPCQgIwB8JCAgPCQgJQB8JCAnAHxoICA8JCAhwHxkICA8JCAiAHwoICJ8qCAgPGAgInyoICJ8qCAgPCQgIoD8JCAmwHysICA8KCAgvGAgIDwkICA8JCAgPCQgIjwkIKGAfKAgILwkICA8JCAiPCggZbyoImYAfKAgILxoICA8JCAiPCwgIHwkICA8JCAlPCggIPHn/GAgIEB8oCAgfGghoHwkICBAfKAgILwoICGHPCgia3ykIm/8JCAgPCQgIjwoICuAfKAgILwoICCya/wkICA8JCAiPCggK7xgICU8qCKi/OAgIEB8oCAgvOAgIPwsIGJ8JCAgPCQgIjwoICe84CJn/OAgKcB8oCAgvCQgIDwkICI8KCAivCgiYbwoICvAfKAgIHxoIiP8JCAgQHygICB8aCGifCQgIEB8oCAgfGgh7jwkICBAfKAgIHzgICB8YCHmvCggZjwkICE8YCHlfCggYrwkICDAfKAgIHygICC84CAhvCwgYoB8oCAgfKAgILzgICG8LCBivCQgYrwkICA8JCAiPCQgIbwkICB8JCFu/CQgIDwkICI8KCAkvGglKLxoIuVAfKAgIHxoICC8JCAgvGAgIDwkICI8JCYsvGAk4DwoIKp8ZCApPCggqvwoIKt84CSh/CggqrwoIKo8KCCqfGQgKTwoIKr8KCCrfOAkbnwoIKq8KCCqPCggqnxkICk8KCCqvCggqjxgI2J8KCCqfCQgITxgI2I8KCCqfCQgITzgICG8KCCqfGQgKTwoIKr8KCCrfKAj6/woIKo8KCCqfCggIzxoJOe8KCCqvCggqrwoIKo8KCCqfCggIzxoJOb8KCCrfKAk5nwoIKt8KCCqfGAgJzyoJK98KCCrPCgh5TxgJOV8KCCqfGggKzzoJK78KCCrPCggqvwoIKt84CL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tPCQhLnwkIS+8LCFgvGghYTyoIWH8JCFl/CQhZ3xsIWg85CFqvCgha/xgIaG8YCGivKAiIXzgIiP84CIlvOwiKrykIis87CIrvKQipT0gI+Y8LCPnPGgj57woI+g8KCPpPGwj6bwkI+o8JCPrfGAj7rwoJCC8KCQiPCwkIzxoJCR9ICQlPSAkJbwoJCc8aCQn/CQkKXwsJCn8LCQqfCwkKvzoJCv86CQsfOgkLPwkJC48qCSlPKQlJDzsJSU8aCAgfKwgIvwkIKW8LCDnvKQg6bysIOu84CDvPOQg7/zkISK87CEmPOAhK/ysISz8YCEtfGQhLnwsIWE8LCFnvCQhofxsI+I8oCPjfGQj5DzsI+S8oCPlPCwj57xoI+h84CPo/Cgj6XxoI+n8KCPtvCQj7/xoJCF8KCQi/CgkJDxgJCT8aCQnPCwkJ/0gJCt8qCQr/KgkLHyoJCz8rCSmvKQkp3xkJKh8bCUhfCQhJTxgICA8JCChfGAgIzygICK8oCDtsSJ8Y+/mPGAgI3woISR8rCFrPCwg5nxkIOqxIfxkIWt8LCAjfOggKPEifGvv5byv7+WxITEifOwg630gIO2xIHzgISE9ICEuvSAha30gJC185CAi/OQg63ysISc84CEovKwhaXysIWr85CGhfOQhofzkIaI85CGifOQiIXzoIiP86CIqvOgiKvzkIiu86CItPKwj6bysI+285CPt/OQj7rzkJCB8rCQh/KwkJTysJCx8rCQs/KwkLjzoJSU85CAnvKggIbDrcOxw7PDtMO1w7bDucO7w7zEgMSFxKvEtsS6xL7FiMWVxZfFnMWtz6LPp8+s0ILQo9Cl0LXSlQLEifKAg5LEmfOAg5nzkIWk84CFrcOuw7HDs8O0w7XDtsO6w7vDvsSAxIXEmcSzxLnEvsWDxZXFl8WcxZ3Pos+lz6zQgtCF0KXQrtKS0qHDsMOxw7PDtMO1w7bDusO7w77EgMSFxInEtsS5xL7FhcWVxZfFnMWjz6LPpM+sz63QhtCl0K/SklHxr7+A8r+/gMOww7HDs8O0w7XDtsO6w7vDvsSAxIXEmcSzxLnEvsWDxZXFl8WcxZ3Pos+nz6zQgtCF0KXQrtKS0qHxr7+K8r+/ivOQg5nwsIOZw6bFrAHwkI+N8aCDkgHygICB8qCAhfCQg7rygICK8aCBpMyo8bCAi/OwgJPwoIKh87CAk/CniIDwoIKJ8rCAjPCwgIfysICP8LCBrvGwgL3wkIGm8JCBqPKLhIPwkIKG8ouEhvCQgKfyi4ST8JCAnPCwgIf0i5SH8JCAnfKLhITiv43wkICm8ouEg/KwgIrwkICT8puIgPCggbPxoICM8JCBntCz8KCAtdGR8rCAnfCQgoXwkIGO0Kb0gICg8JCBpPGggJDxgICJ8YCghfCwgIfzq5SG8KCCh/KQgJXwoIGL8YCAifOQgKnwoIKp0ojwkIG48KCCqdOH8YCCqdGG8bCAi/OwgJ3wsIKp0K/xsICL8LCCqdSI8bCAi/CQgrfFuPOLlIDwkIC18LCAifOQgJzwoIKp0JzxsICV8LCCqdmS8rCAkPKQgJfwoIG38JCCqdOB8LCAmfCggqnTivCggLLSl/GwgJXwkIKM8KCAndO98pCAl/GQgIrzsICV8rCAmvCQgI/SvPCwgZfRuvKQgI3xsICO8JCAqfKbiIHwkICK86uQhfGAgInxkIiD8JCAhAPyi4SC8JCAufKriIPwoIGt8LCCjPGAgJrwkIGd8LCBofGniIDwoIKNz6DwoIKOxanzsICQ8K++vvGniIDwsICJ85CAnfGgg77wkIKcxZbzi5SD8aCAgPCwgovZufCggo3PoPCggZzwsIKM8LCBn/Cggo3KmPCQgZ/yn7+s8LCAlfGAgJvwoIChzrvykICX8YCAq9eT8qCAj/CQgKrPi/CggJbwsIGZzrPykICN8KCBgPCQgrDym4iA8KCAlPCggovzsICM4ryv8LCBqfGwgK/wsIGb0ajxsICi86uUj/GQgI/QpPGwgIzwsICH85uQgfKwgJfzq5CD8LCBnPCggpPxsIaS8KCBv/GwgJLwkIKP8ouEg/OwgJvzu5ST8LCBofCQj7XxsICL8KCAv+GomvCQgbvyq4iB8LCCm/CQgYTNgfOrmIPysICI8JCBu/KrjIb0i5iX77+/8bCIuteJ8oCAp++/v/GwiLnwoIGE8a+/sd2Y8oCAjPSAgJTwsICH84uMhPCwgJvwoIKn0Z3wsIGP8KCBvvCwgI/wsIGc8qCdsvCwgpXxgICa8KGElfCwgIfysICP8JCCnMWV84uUg/CwgpvRgPKQgI3wsICj0JzxsICL8LCAh/GggIDwsIKi8bCAmfCggpLwsIGh8peIgPCwgabykICf9ICdsvCggozykICO8oCAlPCQgo7wkIKC9IuUgfCQgo7ym4iD85CAmfOrkJfwkIG7xIHwoIGf8bCAjvGAgK/woIG/8J+yp/KriIPwn7Wu8quIgQHwr7Cn8bCAjvKwgIjwsICK8LCBsvOwgJsB8ZCAjvCwgKDVtPKQgI3wsICb8YCAifCwgbjQovGwgIvxsICT8LCBhtGE8bCAkPCwgY7VtPCwgbLTjPCwgIjzkICZ8KCCkvCwgbvzkK2y8YCApvCggabwsICp8bCAmfG3iIDwoIGR8JCCkPCQgZjwkIG68LCAlvCwgKTwsICr8LCArPCwgIfwoIKw8rCAl/CggqPSsfCwgIfysICP8ZCAifOQgJPzsLyU8JCCstSA8LCAh/CwgZTxkICN8KCCl9OJ8JCCsNuY8ZCAkfCggJHWufCQgqPSsfCwgKzwsICH8pCwjPCwgaLwoIKe0KnwkIKbzYjzq5iC87CAlfGQgJbYhPKQgI3ykICX8LCCndGA8pCAjfCwgKzQg/GwgJnwsIKe1ZPyoICO8pCwhvCwgIfysICb8LCAh/KwgJnwsICH9Iucg/GwgI3wsICX8rCAmfGniIvwoIKS8LCAnPCQgp7PvvKwsIbwsICH8LCAnfGgg7zwoIGn8LCAp9qG8LCAh/C/v73PoPCggp3ysICX8KCCgfCvv5vPvPCwgKzwsIKa8YCAqNOl8pCAjfOwgIDxgICJ85CAkfGgg4rbtvKAgI3xoIK916TygICN8ZCCl9WL8bCCt+ChsvGwgJ7xsIKc3LvxsICf8LCBkPCwgafwt4iM8LCBnPG3iIvwoICW053woICv0IzxgIGn8bCAn/CwgIfxgIKc8YCBvvGwgKDxsICg8KCBtuKQgfCQgbTSkfKLhI/wn7Gm8J+xsPGQgIrwn7ak8quIgfKPqJryj6ir8pCAjif0gJG/J/SAjoLwsICb8YCCjPKAgJ7wsICJ8LCAifGQgJ3woIKSxIcL6amW8ruYhQfEhwvxgIKk07/xsICN9ICMiPGAgpvSgPGwgI3wsICH85CAkfGAgL/VvfGwgI3yu5iDxIcL6amW8YCCqd6E8bCAi/OwgJ/wsICH8rCAj/CggrDwkISL8JCBrsSHC+mplvK7mIHwsICJ8LCAi/K7mILEhwvpqZbwsIKX04nwsIKEz5nxsICb4aCY8KCCidK78KCAv/Cvv53wsIKk8pCAofCwgInyu5iDxIf0gI6D8JCCsvK7mIPEh/SAjoHyu5iDxIf0gJOT8JCBnvGwgKXwp4iA8KCBqvGwia7vv78H77+/BwHwoIC28LCBhfCwgL/wsICH8LCAh/CQgbbwkIGm8KCApPCwgKDwoIKX8bCJrvGwia7woIGw87CAkvCQgqLyi4SD8LCAiPCggI0D8bCAjvCQgaHyi4SF4r+N8JCAsPKLhIXiv43yoICI8qCAiO+/vwLyoICV84uMkPCwgIfwsIGX8bCAi/CQgovyi4SE8bCAkvGwgJLwkIGS8ouEg/GwgYTwoIGs8pCAkvCggZrykICO8JCAvPOrjIDKm8qbypvKm/CggZDxsICV8LCAiPCggZDxsICM8JCBlPOLjJDwkIGQ84uMkPGAgJnvupHvupHvupHvupHvupHvsJrwkIGQ8ouEkPCwgJ7wsICH8LCCp/GwgZfxoICf14zxsICN8KCCjNaf8LCBn/CwgJ/WvPGwgJ/wsICrz7nxgICh86Cwj/GAgbvwkIGo8YCCot+G84CAlPCggpjEhwcH77+/8oCKj/G7hILxu4SG8JCCqfOrlITwsIGG8bCAkPCwgIjwsIC/8pCAjfCwgpjxsICL8YCAifOQgKLxgICJ85CAovGwgI/xsICS8KCBr/GwgJDwkIGd8quIhNO38bCBivCwgKDPjfGAgL3ysICR5Yyj8ZCBnOWMifCQgYLKq/SLlIPxoICj84uMl/CQgZbxgIGh8aCAjvGwgIvwkISK8aCAivOrlJzwsICJ85CAnPOggIDxgICJ85CAm/CQgKfQsvGQgIrzsICV8YCAifO7lIfwsICH8LCAmfCQgovQm/CggaDwkIKL0ZnwsIKL1bjysICQ8KCCi86L8bCAj/CwgInzkICX8LCAifCwgIfysICY8JCBpPCwgovOm/GwgIvwsICH8LCAh/GQgI7OkvGwgIzwsIO98LCAh/OrlIfwsICU0ZTygICN8LCBoPCggJTRlPKQgI7wsICH8rCAl/CwgIfysICT8LCBgPCQj4nxsICQ8LCBodSG8KCBodK28LCAp/GwgKPwsICr8JCEifCwgIfwsICH8rCAj/CggovQifSAgJbxkICf16zykICN8LCAh/KwgJvwsIKM0KzykICN8LCAqNC38bCAmfCggKPxgIKL8pCAjfCwgJfwsICH8rCAj/GQgInzkICR8KCAidOX1afxsIe98JCCi9CJ8KCBi/CwgIfwoIGQz73wsICLz6jxsICL8aCAn/GwgI3wsICH85CAkfGAgozTqPGwgI3xgICk1JXxsICN0JzxsImA8KCAp/OwgKLxkICn8pCAjfCwgIfwoIKL0K3wr7+w8rCAv/CggYjwsIGg8rCAr/GAgLHPr/GwgIvwsIGD8LCAlfCggKjRp/CggL/woIC2yrzysICX8JCBnPCQgLvKpvOLjIXzsICf8JCCj/KLhIPwsICP8YCCi86v8bCAi/OwgJvxgIGk8KCCstOk8LCCstSe8pCAjfCwgInzkICc8aCDvvCwgInzkICa8LCAifOQgKDwoIKL0KDwsICU0bHykICN8JCCn/KriIXzsICT8K+yo/Cgga/yoICU8aCAivCgganwoIGp8LCAh/KwgJvwoIKC87CApfKQpIXKmMqYypjxkKWy8JCBvvCggrLUkeK8svSLnKHwsICd8JCCoMuJ8JCAj/CggL7ysICW8JCBivO7lIHzsICn8LCAiPGQgaDwkIKC8J++tvKriI3vv7/vv7/vv7/vv7/EhvK7mIED8LCAlvOrlJzwkIC7z5PxgICa8JCBnfKQrbLwsIGb8KGElfSLnJzxgICa8YCAmvCwgaHxp4iA8LCApcqF8JCBqPK3iIDwsICBzovxsICL8aCAidey8bCAi/SAgJTwsICZ8qCAv/CwgaDwsICH8rCAj/CggosD8LCApdOl8JCAgPCwgJrwsICH8rCAlfC/v7TUnvK7mIPEh9Se8ruYg8SH1J7zm5yE1J7zm5yE1J7yu5iBxIfRhvK7mITEh9GG85uchcaA8ruYgcSHyYfyu5iBxIfEh/K7mILEh/K7mILEh/ObnIPyu5iBxIfyu5iBxIfwkIW487CAgMSH8ruYgsSHC/ObnIPzm5yD66O/8ruYgcSHC/K7mIHEhvK7mIHEhw3EhvK7mIHEhvK7mIHEh8mE85ucgs+g8ruYgsSHC/ObnIPyu5iCxIcL85ucg/K7mILEhvObnIPUnvK7mIPEhvK7mILEh/K7mILxgICJ85CAo8SH8ruYgcSH8ruYgcSHC/K7mIHEhvK7mIHEh/K7mIPEh9GG8ruYhMSHC9GG8ruYhMSHC/GQgqnxsICL87CApfK3iIDEh/K7mIHEhvK7mIPEh/K7mIHEhwvzq5CB8ruYg8SHz6Dyu5iCxIfJn/K7mIHEh8mR8ruYgcSHyKfyu5iBxIbyu5iBxIbyu5iCxIfxsICu8bCBjvK7mIHEh/OrkIPzq5CD0Jzyu5iCxIfzq5CC86uQgdCc8ruYgsSHyZbQnPGwgqLKovGwgqLUifK7mIHEhwvzq5CB86uQgtSJ8ruYgcSG8ruYgsSH8ruYgsSG8ruYgsSH8ruYgsSHxIcNxIfLk/K7mILEh8SHxIfLjvK7mIHEhwvyu5iBxIbyu5iBxIfhjZbyu5iBxIfEh8SH86uQgvOrkILyu5iC8p+5jcSHC+GRltKX8ruYgvKfv6zEh8SH8ruYgcSG8ruYgsSH8ruYgsSH8JCFh8SH8rCAjcSH8JCFl8SHDfGAgJvbrfK7mITEhwvSvPK7mIHEhvK7mILzsICAxIfEh86z8ruYg8SHzrPyu5iDxIfOs92Y8ruYhsSH8JCAi/K7mIPEh9Cg8bCJgNCg8bCJgM+98aCJgMSH0bHyu5iDxIbyu5iDxIbyu5iDxIfEhwfyn7+/B8SHzq/yu5iExIbyu5iExIbzm5yFxZ3Ir8ik8ruYgcSHxIfyu5iCxIfyu5iCxIfzm5yD8ruYgcSH85ucgtCc8ruYg8SG8ruYg8SH8YCAlPKQgI3Eh/K7mIHEh9Cgzq/Or86v8ruYhPCwgIfysICPxIbyu5iExIbyu5iBxIfyu5iBxIfEh8mX8ruYgcSHyJ/yu5iB8Z+5jgbFovK7mIEHxIbyu5iCxIcHB8SH8bCHlNGZ8ruYgcSH8ruYgsSHxIfxsIeU0Kbyu5iBxIbyu5iBB++/v8SG8ruYgcSHxIbyu5iCB/C/v7/EhvK7mIHEhvK7mIHEh/ObnILzm5yC8KCBtcSH0JzQnMSHz6Hyu5iDxIbyu5iDxIbzq5CD0qrzq5CE1azxsIKux5zzq5CB86uQgtSg8ruYgeujv8SH1J7SiNGG0brUiMW41IXZktSJ04HSl9K8047Jn/ObnILSvPObnILyu5iDxIfyu5iCxIbyu5iBxIb0hICJ77+/77+/77+/77+/77+/xIfwkIaixIbzm5yC8ruYgsSH8ruYgsSHxIfwkIGR77+/xIfvv7/vv7/Eh/K7mILvv7/vv7/vv7/vv7/Eh9mS1IjUgdOB0pfTjtCC8ruYge+/vwHPi/ObnILNiPK7mIHvv7/vv7/Eh++/v8SH263yu5iExIcL263yu5iExIcL263zm5yF15Pzm5yF0rzyu5iBxIcL8rCAgPGggIDxkICA8bCAhfK7mIHvv7/Eh9m58ruYg8SH8JCAkPSLlIPEh9SA8ruYgcSHC9CC8ruYge+/v++/v8SHxIcH77+/B++/v8SH5pGW8ruYgsSH5pGW8ruYgfOwgIDvv7/vv7/vv7/Eh9iE8ruYhe+/v8SH8ruYgsSHxIcN77+/77+/xIfyu5iBxIfwkIWB77+/xIfwkICN8JCGosSHxIfEh8SG85ucg9SA8ruYgcSG8ruYgcSHxIfEh8SHDe+/v++/v8SH8JCFqsSH8KCAjfCQhqXEh8SG85ucg/K7mILEhvK7mILEh8SG85ucg/ObnIPzm5yD04nzm5yDzr3Eh8SH77+/xIcOxIcOxIfyu5iCxIfEhvObnIPUnvObnITEh8SG85ucg9Se85uchCcXF9Se85uchPObnIPUnvObnITzm5yD1J7zm5yE85ucg9Se85uchPObnIMnxIcX86uQhPOrkIHRhvK7mITEh/SAgIvRhvK7mITEhvK7mIHEh8SG85ucgtGG85uchcSHxIbzm5yC0Ybzm5yFJ/KggJcXx7jyu5iBxIfzoICL86uQgfOrkILzq5CC86uQgvK7mILEh/SAgIvzm5yDxIfEhvObnIPzm5yDxIfEhvObnIMmxIfyu5iDxIfyu5iDxIfyu5iDxIfzq5CD86uQg/OrkIHzq5CC8ruYgcSH9ICAi/K7mILEh/K7mILEh/K7mILEh/K7mILEhvK7mIPEh8SHDvO/uqPEh/CQgI7Eh+ujv/OwgIDEh/K7mILzsICAxIfEhwvpqZbyu5iCxIcL8ruYgsSHC+mplvK7mIHEh+atlvK7mIIC8rCwgvCvv5TSsfCggIPQsPKQgJbwr7+9zYjykICW8YCAi9Sy8pCAjfGPv5PQqfKQgI3zsICA8oCAjPCwgIjzkICR8rCAj/CniIDysICP8aeIgNCv86uQg9Cz0ZHyu5iBxIcL1Inyu5iBxIcL1J7zm5yE85ucg9GG85uchfObnILHqvObnILHj/ObnILzm5yD85ucg9OK85ucg8qY85ucg/ObnILzm5yD05PxsIKu86uQgvOrkIPzq5CC86uQg/OrkILzq5CD86uQg/OrkILUhfK7mIPEh/OrkIPzq5CD86uQgvOrkIHzq5CD86uQg/OrkIHzq5CC85ucg9OB8ruYgcSH86uQgvOrkILzq5CB86uQgfOrkILzq5CC85ucgtO98ruYgsSG8ruYgsSH8qCAjsSH8qCAjsSH8qCAjsSH8qCAjsSH8qCAjsSH8qCAjgfvv7/vv7/vv7/vv7/vv7/vv7/vv7/vv7/vv7/vv7/vv7/vv7/zoICA77+/77+/xIfzoICAxIbzm5yEzq/Eh8WRyLzzm5yC0Zfyu5iDxIbyu5iC77+/77+/77+/77+/xIfVuNGZ0YTQm8+90LLwsIGI8YCCi/GwgIvzsICd86CAgO+/v/CvuY8HxIfUhvGwh7zXsvK7mIbEh/Gwh5TXsfK7mITEh9ex85uchdCc8bCBhPK7mIPEhwvktZbyu5iExIcL5LWW8bCCpPGwgqTzq5CB);
-      doc.addFont("CustomFont.ttf", "CustomFont", "normal");
-      doc.setFont("CustomFont");
-
+      doc.setFont("Helvetica");
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 25);
-
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -676,7 +641,6 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
-
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
@@ -684,11 +648,9 @@
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
         alternateRowStyles: { fillColor: [245, 245, 245] }
       });
-
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
-
       const pdfBlob = doc.output('blob');
       const pdfFile = new File([pdfBlob], `brunos-calculator-report-${getMonthName(currentMonth)}-${currentYear}.pdf`, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
@@ -818,6 +780,7 @@
       dataSizeFill.style.backgroundColor = percentageUsed > 80 ? '#f44336' : percentageUsed > 50 ? '#ff9800' : '#4CAF50';
     }
 
+    // Inicializácia
     document.addEventListener('DOMContentLoaded', () => {
       const currentDate = new Date();
       currentMonth = currentDate.getMonth();
