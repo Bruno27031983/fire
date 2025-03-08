@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bruno's Calculator s Firebase Auth a Dynamickým Načítaním Roboto Fontu</title>
+  <title>Bruno's Calculator s Firebase Auth a Roboto Font (AutoTable fix)</title>
 
-  <!-- Firebase "compat" skripty – načítajú sa najprv -->
+  <!-- Firebase "compat" skripty -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -18,7 +18,7 @@
   <meta name="theme-color" content="#4CAF50">
 
   <style>
-    /* Štýly – uprav podľa vlastných preferencií */
+    /* ----- Štýly ----- */
     body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 10px; background-color: #f4f4f4; color: #333; }
     .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; }
     .autor-info { position: absolute; top: 10px; left: 10px; font-size: 14px; font-style: italic; color: #666; }
@@ -83,6 +83,7 @@
       <input type="email" id="registerEmail" placeholder="Email">
       <input type="password" id="registerPassword" placeholder="Heslo">
       <button onclick="register()">Registrovať</button>
+
       <h2>Prihlásenie</h2>
       <input type="email" id="loginEmail" placeholder="Email">
       <input type="password" id="loginPassword" placeholder="Heslo">
@@ -215,6 +216,7 @@
           alert("Chyba: " + error.message);
         });
     }
+
     function login() {
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
@@ -228,6 +230,7 @@
           alert("Chyba: " + error.message);
         });
     }
+
     function logout() {
       auth.signOut()
         .then(() => {
@@ -239,6 +242,7 @@
           alert("Chyba: " + error.message);
         });
     }
+
     auth.onAuthStateChanged(async (user) => {
       const authMessage = document.getElementById('auth-message');
       const authContainer = document.getElementById('auth-container');
@@ -291,6 +295,7 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+
       try {
         const robotoBase64 = await loadRobotoFont();
         doc.addFileToVFS("Roboto-Regular.ttf", robotoBase64);
@@ -299,10 +304,13 @@
       } catch (error) {
         console.error("Chyba pri načítaní Roboto fontu:", error);
       }
+
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 30);
+
+      // Príprava dát pre tabuľku
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -316,16 +324,21 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
+
+      // Nastavenie fontu priamo v autoTable
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
         startY: 30,
-        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] }
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "Roboto" },
+        bodyStyles: { font: "Roboto" },
+        alternateRowStyles: { fillColor: [245, 245, 245], font: "Roboto" }
       });
+
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
+
       doc.save(`brunos-calculator-report-${getMonthName(currentMonth)}-${currentYear}.pdf`);
     }
 
@@ -336,6 +349,7 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+
       try {
         const robotoBase64 = await loadRobotoFont();
         doc.addFileToVFS("Roboto-Regular.ttf", robotoBase64);
@@ -344,10 +358,12 @@
       } catch (error) {
         console.error("Chyba pri načítaní Roboto fontu:", error);
       }
+
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 30);
+
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -361,16 +377,20 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
+
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
         startY: 30,
-        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] }
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "Roboto" },
+        bodyStyles: { font: "Roboto" },
+        alternateRowStyles: { fillColor: [245, 245, 245], font: "Roboto" }
       });
+
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
+
       const pdfBlob = doc.output('blob');
       const pdfFile = new File([pdfBlob], `brunos-calculator-report-${getMonthName(currentMonth)}-${currentYear}.pdf`, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
@@ -436,7 +456,7 @@
       fileInput.click();
     }
 
-    // --------------------- Tmavý režim ---------------------
+    // --------------------- Tmavý režim + ukladanie do localStorage ---------------------
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
       document.querySelector('.container').classList.toggle('dark-mode');
@@ -450,37 +470,182 @@
       debouncedSaveToLocalStorage();
     }
 
-    function changeDecimalPlaces() {
-      decimalPlaces = parseInt(decimalPlacesSelect.value);
-      localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
-      for (let i = 1; i <= getDaysInMonth(currentMonth); i++) calculateRow(i);
-      calculateTotal();
-      debouncedSaveToLocalStorage();
+    const debouncedSaveToLocalStorage = debounce(saveToLocalStorage, 300);
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+      };
     }
 
-    function updateEmployeeName() {
-      employeeName = employeeNameInput.value.trim();
-      localStorage.setItem('employeeName', JSON.stringify(employeeName));
-      debouncedSaveToLocalStorage();
+    function saveToLocalStorage() {
+      try {
+        const data = [];
+        for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
+          const start = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`)?.value || '';
+          const end = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`)?.value || '';
+          const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`)?.value || '';
+          const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`)?.value || '0.00';
+          const net = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`)?.value || '0.00';
+          data.push({ start, end, breakTime, gross, net });
+        }
+        if (!monthData[currentYear]) monthData[currentYear] = {};
+        monthData[currentYear][currentMonth] = data;
+        const serializedData = JSON.stringify(monthData);
+
+        const totalData = serializedData + JSON.stringify(hourlyWage) + JSON.stringify(taxRate) +
+          JSON.stringify(document.body.classList.contains('dark-mode')) +
+          JSON.stringify(decimalPlaces) + JSON.stringify(employeeName);
+        const bytes = new Blob([totalData]).size;
+        if (bytes > MAX_DATA_SIZE) {
+          alert(`Prekročili ste maximálnu veľkosť dát (${MAX_DATA_SIZE_KB} KB).`);
+          return;
+        }
+
+        localStorage.setItem('workDaysData', serializedData);
+        localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage));
+        localStorage.setItem('taxRate', JSON.stringify(taxRate * 100));
+        localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode')));
+        localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
+        localStorage.setItem('employeeName', JSON.stringify(employeeName));
+
+        updateDataSize();
+        saveToFirebase();
+      } catch (error) {
+        console.error('Chyba pri ukladaní do localStorage:', error);
+        alert("Chyba pri ukladaní do localStorage: " + error.message);
+      }
     }
 
-    function updateSettings() {
-      hourlyWage = parseFloat(hourlyWageInput.value) || 10;
-      taxRate = parseFloat(taxRateInput.value) / 100 || 0.02;
-      for (let i = 1; i <= getDaysInMonth(currentMonth); i++) calculateRow(i);
-      calculateAndUpdateTotals();
+    async function saveToFirebase() {
+      try {
+        const dataToSave = {
+          workDaysData: JSON.stringify(monthData),
+          hourlyWage: JSON.stringify(hourlyWage),
+          taxRate: JSON.stringify(taxRate * 100),
+          darkMode: JSON.stringify(document.body.classList.contains('dark-mode')),
+          decimalPlaces: JSON.stringify(decimalPlaces),
+          employeeName: JSON.stringify(employeeName),
+          timestamp: new Date().toISOString()
+        };
+        const yearMonthDoc = `${currentYear}-${currentMonth}`;
+        const uid = auth.currentUser?.uid || "unknown";
+        await db.collection("users").doc(uid)
+          .collection("calculatorData").doc(yearMonthDoc).set(dataToSave);
+        console.log("Uložené do Firebase:", uid, yearMonthDoc);
+        showSaveNotification("Dáta uložené do Firebase");
+      } catch (error) {
+        console.error("Chyba pri ukladaní do Firebase:", error);
+        alert("Chyba pri ukladaní do Firebase: " + error.message);
+      }
     }
 
-    function changeMonth() {
-      currentMonth = parseInt(monthSelect.value);
-      createTable();
-      loadFromFirebase();
+    async function loadFromFirebase() {
+      try {
+        const uid = auth.currentUser?.uid;
+        if (!uid) {
+          console.log("Nikto nie je prihlásený.");
+          return;
+        }
+        const docRef = db.collection("users").doc(uid)
+          .collection("calculatorData").doc(`${currentYear}-${currentMonth}`);
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          console.log("Načítané z Firebase:", data);
+
+          monthData = JSON.parse(data.workDaysData || '{}');
+          hourlyWage = parseFloat(JSON.parse(data.hourlyWage)) || 10;
+          taxRate = parseFloat(JSON.parse(data.taxRate)) / 100 || 0.02;
+          decimalPlaces = parseInt(JSON.parse(data.decimalPlaces)) || 1;
+          employeeName = JSON.parse(data.employeeName) || '';
+          const darkMode = JSON.parse(data.darkMode) || false;
+
+          localStorage.setItem('workDaysData', JSON.stringify(monthData));
+          localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage));
+          localStorage.setItem('taxRate', JSON.stringify(taxRate * 100));
+          localStorage.setItem('darkMode', JSON.stringify(darkMode));
+          localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
+          localStorage.setItem('employeeName', JSON.stringify(employeeName));
+
+          hourlyWageInput.value = hourlyWage;
+          taxRateInput.value = taxRate * 100;
+          decimalPlacesSelect.value = decimalPlaces;
+          employeeNameInput.value = employeeName;
+
+          createTable();
+          const monthDays = (monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+          monthDays.forEach((day, index) => {
+            const i = index + 1;
+            const startElement = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`);
+            const endElement = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`);
+            const breakElement = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`);
+            const grossElement = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`);
+            const netElement = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`);
+            if (startElement && endElement && breakElement && grossElement && netElement) {
+              startElement.value = day.start || '';
+              endElement.value = day.end || '';
+              breakElement.value = day.breakTime || '';
+              grossElement.value = day.gross || '0.00';
+              netElement.value = day.net || '0.00';
+              calculateRow(i);
+            }
+          });
+          calculateTotal();
+          updateDataSize();
+          if (darkMode) toggleDarkMode();
+          showSaveNotification("Dáta načítané z Firebase");
+        } else {
+          console.log("Žiadne dáta na Firebase pre:", `${currentYear}-${currentMonth}`);
+          loadFromLocalStorage();
+        }
+      } catch (error) {
+        console.error("Chyba pri načítavaní z Firebase:", error);
+        alert("Chyba pri načítavaní z Firebase: " + error.message);
+        loadFromLocalStorage();
+      }
     }
 
-    function changeYear() {
-      currentYear = parseInt(yearSelect.value);
-      createTable();
-      loadFromFirebase();
+    function loadFromLocalStorage() {
+      try {
+        monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+        hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10;
+        taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02;
+        const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
+        decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1;
+        employeeName = JSON.parse(localStorage.getItem('employeeName')) || '';
+
+        hourlyWageInput.value = hourlyWage;
+        taxRateInput.value = taxRate * 100;
+        decimalPlacesSelect.value = decimalPlaces;
+        employeeNameInput.value = employeeName;
+
+        createTable();
+        const data = (monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+        data.forEach((day, index) => {
+          const i = index + 1;
+          const startElement = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`);
+          const endElement = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`);
+          const breakElement = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`);
+          const grossElement = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`);
+          const netElement = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`);
+          if (startElement && endElement && breakElement && grossElement && netElement) {
+            startElement.value = day.start || '';
+            endElement.value = day.end || '';
+            breakElement.value = day.breakTime || '';
+            grossElement.value = day.gross || '0.00';
+            netElement.value = day.net || '0.00';
+            calculateRow(i);
+          }
+        });
+        calculateTotal();
+        updateDataSize();
+        if (darkMode) toggleDarkMode();
+      } catch (error) {
+        console.error('Chyba pri načítavaní z localStorage:', error);
+        alert("Chyba pri načítavaní z localStorage: " + error.message);
+      }
     }
 
     function getDaysInMonth(month) {
@@ -492,14 +657,9 @@
       return monthNames[month];
     }
 
-    function updateDataSize() {
-      const totalData = Object.values(localStorage).join('');
-      const bytes = new Blob([totalData]).size;
-      const kilobytes = (bytes / 1024).toFixed(2);
-      const percentageUsed = Math.min(((bytes / MAX_DATA_SIZE) * 100).toFixed(2), 100);
-      dataSizeText.textContent = `Veľkosť dát: ${kilobytes} KB / ${MAX_DATA_SIZE_KB} KB`;
-      dataSizeFill.style.width = `${percentageUsed}%`;
-      dataSizeFill.style.backgroundColor = percentageUsed > 80 ? '#f44336' : percentageUsed > 50 ? '#ff9800' : '#4CAF50';
+    function getDayName(year, month, day) {
+      const daysOfWeek = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+      return daysOfWeek[new Date(year, month, day).getDay()];
     }
 
     function createTable() {
@@ -509,6 +669,7 @@
       const currentMonthIndex = currentDate.getMonth();
       const currentYearValue = currentDate.getFullYear();
       const daysInMonth = getDaysInMonth(currentMonth);
+
       for (let i = 1; i <= daysInMonth; i++) {
         const row = document.createElement('tr');
         if (i === currentDay && currentMonth === currentMonthIndex && currentYear === currentYearValue) {
@@ -527,11 +688,6 @@
         `;
         workDays.appendChild(row);
       }
-    }
-
-    function getDayName(year, month, day) {
-      const daysOfWeek = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
-      return daysOfWeek[new Date(year, month, day).getDay()];
     }
 
     function handleInput(input, nextId) {
@@ -584,17 +740,21 @@
       const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`);
       const grossElement = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`);
       const netElement = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`);
+
       if (!startTime || !endTime || !totalCell || !grossElement || !netElement) return;
+
       const [startHours, startMinutes] = startTime.split(':').map(Number);
       const [endHours, endMinutes] = endTime.split(':').map(Number);
       const startDate = new Date(0, 0, 0, startHours, startMinutes);
       const endDate = new Date(0, 0, 0, endHours, endMinutes);
       let diff = (endDate - startDate) / 60000 - (breakTime * 60);
       if (diff < 0) diff += 24 * 60;
+
       const hours = Math.floor(diff / 60);
       const minutes = Math.round(diff % 60);
       const decimalHours = (diff / 60).toFixed(decimalPlaces);
       totalCell.textContent = `${hours}h ${minutes}m (${decimalHours} h)`;
+
       const grossSalary = (diff / 60) * hourlyWage;
       grossElement.value = isFinite(grossSalary) ? grossSalary.toFixed(decimalPlaces) : '0.00';
       const netSalary = grossSalary * (1 - taxRate);
@@ -648,10 +808,13 @@
             totalGrossSalary += grossSalary;
             const netSalary = parseFloat(netInput.value) || 0;
             totalNetSalary += netSalary;
-            if (grossSalary > 0 || netSalary > 0) daysWithEntries += 1;
+            if (grossSalary > 0 || netSalary > 0) {
+              daysWithEntries += 1;
+            }
           }
         }
       });
+
       const totalHours = Math.floor(totalMinutes / 60);
       const totalMinutesRemainder = Math.round(totalMinutes % 60);
       const totalDecimalHours = (totalMinutes / 60).toFixed(decimalPlaces);
@@ -660,6 +823,7 @@
       const averageHours = Math.floor(averageWorkedMinutes / 60);
       const averageMinutes = Math.round(averageWorkedMinutes % 60);
       const averageDecimalHours = (averageWorkedMinutes / 60).toFixed(decimalPlaces);
+
       totalSalaryDiv.innerHTML = `
         Počet odpracovaných dní: ${daysWithEntries}<br>
         Celkový odpracovaný čas: ${totalHours}h ${totalMinutesRemainder}m (${totalDecimalHours} h)<br>
@@ -670,107 +834,7 @@
       `;
     }
 
-    // --------------------- Zálohovanie/obnova ---------------------
-    function createBackup() {
-      const backup = {
-        workDaysData: localStorage.getItem('workDaysData'),
-        hourlyWage: localStorage.getItem('hourlyWage'),
-        taxRate: localStorage.getItem('taxRate'),
-        darkMode: localStorage.getItem('darkMode'),
-        decimalPlaces: localStorage.getItem('decimalPlaces'),
-        employeeName: localStorage.getItem('employeeName')
-      };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function restoreBackup() {
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.json';
-      fileInput.onchange = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const backup = JSON.parse(e.target.result);
-            Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            createTable();
-            calculateTotal();
-            updateDataSize();
-            alert("Záloha obnovená.");
-          } catch (error) {
-            console.error("Chyba pri obnove zálohy:", error);
-            alert("Chyba pri obnove zálohy.");
-          }
-        };
-        reader.readAsText(file);
-      };
-      fileInput.click();
-    }
-
-    // --------------------- Tmavý režim ---------------------
-    const debouncedSaveToLocalStorage = debounce(saveToLocalStorage, 300);
-    function debounce(func, wait) {
-      let timeout;
-      return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-      };
-    }
-    function toggleDarkMode() {
-      document.body.classList.toggle('dark-mode');
-      document.querySelector('.container').classList.toggle('dark-mode');
-      document.querySelectorAll('table, th, td, input').forEach(el => el.classList.toggle('dark-mode'));
-      document.querySelectorAll('.btn').forEach(btn => btn.classList.toggle('dark-mode'));
-      totalSalaryDiv.classList.toggle('dark-mode');
-      const currentDayRow = document.querySelector('.current-day');
-      if (currentDayRow) currentDayRow.classList.toggle('dark-mode');
-      localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode')));
-      updateDataSize();
-      debouncedSaveToLocalStorage();
-    }
-
-    function changeDecimalPlaces() {
-      decimalPlaces = parseInt(decimalPlacesSelect.value);
-      localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
-      for (let i = 1; i <= getDaysInMonth(currentMonth); i++) calculateRow(i);
-      calculateTotal();
-      debouncedSaveToLocalStorage();
-    }
-
-    function updateEmployeeName() {
-      employeeName = employeeNameInput.value.trim();
-      localStorage.setItem('employeeName', JSON.stringify(employeeName));
-      debouncedSaveToLocalStorage();
-    }
-
-    function updateSettings() {
-      hourlyWage = parseFloat(hourlyWageInput.value) || 10;
-      taxRate = parseFloat(taxRateInput.value) / 100 || 0.02;
-      for (let i = 1; i <= getDaysInMonth(currentMonth); i++) calculateRow(i);
-      calculateAndUpdateTotals();
-    }
-
-    function changeMonth() {
-      currentMonth = parseInt(monthSelect.value);
-      createTable();
-      loadFromFirebase();
-    }
-
-    function changeYear() {
-      currentYear = parseInt(yearSelect.value);
-      createTable();
-      loadFromFirebase();
-    }
-
-    // --------------------- Inicializácia ---------------------
+    // --------------------- Inicializácia (DOM Loaded) ---------------------
     document.addEventListener('DOMContentLoaded', () => {
       const currentDate = new Date();
       currentMonth = currentDate.getMonth();
@@ -780,6 +844,7 @@
       hourlyWage = parseFloat(localStorage.getItem('hourlyWage')) || 10;
       taxRate = parseFloat(localStorage.getItem('taxRate')) / 100 || 0.02;
       monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+
       populateYearSelect();
       monthSelect.value = currentMonth;
       yearSelect.value = currentYear;
@@ -787,6 +852,7 @@
       employeeNameInput.value = employeeName;
       hourlyWageInput.value = hourlyWage;
       taxRateInput.value = taxRate * 100;
+
       createTable();
       calculateTotal();
       updateDataSize();
@@ -802,6 +868,23 @@
         option.textContent = year;
         yearSelect.appendChild(option);
       }
+    }
+
+    function updateDataSize() {
+      const totalData = Object.values(localStorage).join('');
+      const bytes = new Blob([totalData]).size;
+      const kilobytes = (bytes / 1024).toFixed(2);
+      const percentageUsed = Math.min(((bytes / MAX_DATA_SIZE) * 100).toFixed(2), 100);
+      dataSizeText.textContent = `Veľkosť dát: ${kilobytes} KB / ${MAX_DATA_SIZE_KB} KB`;
+      dataSizeFill.style.width = `${percentageUsed}%`;
+      dataSizeFill.style.backgroundColor = percentageUsed > 80 ? '#f44336' : percentageUsed > 50 ? '#ff9800' : '#4CAF50';
+    }
+
+    function showSaveNotification(message) {
+      const notification = document.getElementById('saveNotification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => notification.classList.remove('show'), 2000);
     }
   </script>
 </body>
