@@ -158,7 +158,7 @@
     const MAX_DATA_SIZE = 4 * 1024 * 1024;
     const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
 
-    // Firebase autentifikačné funkcie
+    // Funkcie
     function register() {
       const email = document.getElementById('registerEmail').value;
       const password = document.getElementById('registerPassword').value;
@@ -214,7 +214,7 @@
           await userDocRef.set({ email: user.email, createdAt: new Date().toISOString() });
           console.log("Vytvorený dokument pre:", uid);
         }
-        loadFromFirebase();
+        loadFromFirebase(); // Načítanie po prihlásení
       } else {
         authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
         authContainer.style.display = "block";
@@ -222,7 +222,6 @@
       }
     });
 
-    // Pomocné funkcie
     function debounce(func, wait) {
       let timeout;
       return function (...args) {
@@ -332,7 +331,7 @@
           decimalPlacesSelect.value = decimalPlaces;
           employeeNameInput.value = employeeName;
 
-          createTable();
+          createTable(); // Rekreačná tabuľka po načítaní
           const monthDays = (monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
           monthDays.forEach((day, index) => {
             const i = index + 1;
@@ -579,7 +578,6 @@
       `;
     }
 
-    // Upravená funkcia exportToPDF s logikou z predchádzajúceho kódu (Roboto)
     function exportToPDF() {
       if (!window.jspdf) {
         alert("Knižnica jsPDF nie je načítaná.");
@@ -587,33 +585,30 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
+      doc.setFont("Helvetica");
       doc.setFontSize(18);
-      doc.text(`Bruno's Calculator - Výkaz práce (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
+      doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
-      doc.text(`Meno pracovníka: ${employeeName}`, 14, 25);
+      doc.text(`Meno: ${employeeName}`, 14, 25);
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
-        const startTime = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const endTime = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const start = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const end = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`)?.value || '';
         const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const totalTime = document.getElementById(`total-${currentYear}-${currentMonth}-${i}`)?.textContent || '';
-        const grossSalary = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const netSalary = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        if (startTime || endTime || breakTime) {
-          tableData.push([`Deň ${i} (${dayName})`, startTime, endTime, breakTime, totalTime, grossSalary, netSalary]);
+        const total = document.getElementById(`total-${currentYear}-${currentMonth}-${i}`)?.textContent || '';
+        const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const net = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        if (start || end || breakTime) {
+          tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
         startY: 30,
-        styles: { font: 'Roboto' },
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 25 }
+        alternateRowStyles: { fillColor: [245, 245, 245] }
       });
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
@@ -621,7 +616,6 @@
       doc.save(`brunos-calculator-report-${getMonthName(currentMonth)}-${currentYear}.pdf`);
     }
 
-    // Upravená funkcia sendPDF s logikou z predchádzajúceho kódu (Roboto)
     function sendPDF() {
       if (!window.jspdf) {
         alert("Knižnica jsPDF nie je načítaná.");
@@ -629,33 +623,30 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
+      doc.setFont("Helvetica");
       doc.setFontSize(18);
-      doc.text(`Bruno's Calculator - Výkaz práce (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
+      doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
-      doc.text(`Meno pracovníka: ${employeeName}`, 14, 25);
+      doc.text(`Meno: ${employeeName}`, 14, 25);
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
-        const startTime = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const endTime = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const start = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const end = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`)?.value || '';
         const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const totalTime = document.getElementById(`total-${currentYear}-${currentMonth}-${i}`)?.textContent || '';
-        const grossSalary = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        const netSalary = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`)?.value || '';
-        if (startTime || endTime || breakTime) {
-          tableData.push([`Deň ${i} (${dayName})`, startTime, endTime, breakTime, totalTime, grossSalary, netSalary]);
+        const total = document.getElementById(`total-${currentYear}-${currentMonth}-${i}`)?.textContent || '';
+        const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        const net = document.getElementById(`net-${currentYear}-${currentMonth}-${i}`)?.value || '';
+        if (start || end || breakTime) {
+          tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
         startY: 30,
-        styles: { font: 'Roboto' },
         headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 25 }
+        alternateRowStyles: { fillColor: [245, 245, 245] }
       });
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
@@ -670,7 +661,13 @@
         }).then(() => console.log('PDF odoslané'))
           .catch(error => console.error('Chyba pri odosielaní:', error));
       } else {
-        alert('Funkcia zdieľania súborov nie je podporovaná vo vašom prehliadači.');
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `brunos-calculator-report-${getMonthName(currentMonth)}-${currentYear}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert("Zdieľanie nie je podporované. Súbor stiahnutý.");
       }
     }
 
