@@ -20,7 +20,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-    /* Použitie písma Roboto */
     body { 
       font-family: 'Roboto', sans-serif; 
       line-height: 1.6; 
@@ -29,20 +28,99 @@
       background-color: #f4f4f4; 
       color: #333; 
     }
-    .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; }
-    .autor-info { position: absolute; top: 10px; left: 10px; font-size: 14px; font-style: italic; color: #666; }
-    h1 { text-align: center; font-size: 2.5em; background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ffff00, #ff00ff); background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientText 5s ease-in-out infinite, textShadowPulse 2s ease-in-out infinite; margin-bottom: 10px; }
-    h2 { text-align: center; color: #555; margin-top: -10px; font-size: 1.2em; }
-    .settings { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; }
-    .settings > div { flex: 1 1 200px; margin: 5px; }
-    .settings label { display: block; margin-bottom: 5px; }
-    .table-container { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; min-width: 800px; }
-    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; font-size: 0.9em; }
-    th { background-color: #f2f2f2; }
-    input[type="tel"], input[type="number"], input[type="text"] { width: 100%; padding: 5px; box-sizing: border-box; background-color: #ffffd0; font-size: 14px; border: 1px solid #ccc; border-radius: 3px; }
-    .btn-container { display: flex; flex-direction: column; width: 100%; gap: 15px; margin-top: 20px; }
-    .btn { width: 100%; padding: 15px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; text-align: center; }
+    .container { 
+      max-width: 1200px; 
+      margin: auto; 
+      background: white; 
+      padding: 15px; 
+      border-radius: 5px; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+      position: relative; 
+    }
+    .autor-info { 
+      position: absolute; 
+      top: 10px; 
+      left: 10px; 
+      font-size: 14px; 
+      font-style: italic; 
+      color: #666; 
+    }
+    h1 { 
+      text-align: center; 
+      font-size: 2.5em; 
+      background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ffff00, #ff00ff); 
+      background-clip: text; 
+      -webkit-background-clip: text; 
+      color: transparent; 
+      animation: gradientText 5s ease-in-out infinite, textShadowPulse 2s ease-in-out infinite; 
+      margin-bottom: 10px; 
+    }
+    h2 { 
+      text-align: center; 
+      color: #555; 
+      margin-top: -10px; 
+      font-size: 1.2em; 
+    }
+    .settings { 
+      margin-bottom: 20px; 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    .settings > div { 
+      flex: 1 1 200px; 
+      margin: 5px; 
+    }
+    .settings label { 
+      display: block; 
+      margin-bottom: 5px; 
+    }
+    .table-container { 
+      overflow-x: auto; 
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 20px; 
+      min-width: 800px; 
+    }
+    th, td { 
+      padding: 8px; 
+      border: 1px solid #ddd; 
+      text-align: left; 
+      font-size: 0.9em; 
+    }
+    th { 
+      background-color: #f2f2f2; 
+    }
+    input[type="tel"], input[type="number"], input[type="text"] { 
+      width: 100%; 
+      padding: 5px; 
+      box-sizing: border-box; 
+      background-color: #ffffd0; 
+      font-size: 14px; 
+      border: 1px solid #ccc; 
+      border-radius: 3px; 
+    }
+    .btn-container { 
+      display: flex; 
+      flex-direction: column; 
+      width: 100%; 
+      gap: 15px; 
+      margin-top: 20px; 
+    }
+    .btn { 
+      width: 100%; 
+      padding: 15px 20px; 
+      color: white; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      font-size: 16px; 
+      transition: background-color 0.3s ease; 
+      text-align: center; 
+    }
     .reset-btn { background-color: #f44336; }
     .reset-btn:hover { background-color: #d32f2f; }
     .export-btn { background-color: #4CAF50; }
@@ -51,16 +129,69 @@
     .restore-btn:hover { background-color: #7B1FA2; }
     .backup-btn { background-color: #FFA500; }
     .backup-btn:hover { background-color: #E68900; }
-    .highlight { background-color: #ffcc00; color: #333; font-weight: bold; border: 2px solid #ffcc00; }
-    #totalSalary { font-size: 18px; font-weight: bold; text-align: center; margin-top: 20px; padding: 10px; background-color: #e6f3ff; border-radius: 5px; }
-    #dataSizeContainer { margin-top: 10px; text-align: center; }
-    #dataSizeText { margin-bottom: 5px; font-size: 14px; color: #555; }
-    #dataSizeBar { width: 80%; height: 20px; background-color: #ddd; border-radius: 10px; margin: 0 auto; overflow: hidden; }
-    #dataSizeFill { height: 100%; width: 0%; background-color: #4CAF50; transition: width 0.3s ease; }
-    .current-day { background-color: #8a2be2; color: white; }
-    .current-day input { background-color: #9932cc; color: white; }
-    @keyframes gradientText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    @keyframes textShadowPulse { 0%, 100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.2); } 50% { text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 30px rgba(255, 255, 255, 0.9), 0 0 40px rgba(255, 255, 255, 0.7); } }
+    .highlight { 
+      background-color: #ffcc00; 
+      color: #333; 
+      font-weight: bold; 
+      border: 2px solid #ffcc00; 
+    }
+    #totalSalary { 
+      font-size: 18px; 
+      font-weight: bold; 
+      text-align: center; 
+      margin-top: 20px; 
+      padding: 10px; 
+      background-color: #e6f3ff; 
+      border-radius: 5px; 
+    }
+    #dataSizeContainer { 
+      margin-top: 10px; 
+      text-align: center; 
+    }
+    #dataSizeText { 
+      margin-bottom: 5px; 
+      font-size: 14px; 
+      color: #555; 
+    }
+    #dataSizeBar { 
+      width: 80%; 
+      height: 20px; 
+      background-color: #ddd; 
+      border-radius: 10px; 
+      margin: 0 auto; 
+      overflow: hidden; 
+    }
+    #dataSizeFill { 
+      height: 100%; 
+      width: 0%; 
+      background-color: #4CAF50; 
+      transition: width 0.3s ease; 
+    }
+    .current-day { 
+      background-color: #8a2be2; 
+      color: white; 
+    }
+    .current-day input { 
+      background-color: #9932cc; 
+      color: white; 
+    }
+    @keyframes gradientText { 
+      0% { background-position: 0% 50%; } 
+      50% { background-position: 100% 50%; } 
+      100% { background-position: 0% 50%; } 
+    }
+    @keyframes textShadowPulse { 
+      0%, 100% { 
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 
+                     0 0 20px rgba(255, 255, 255, 0.3), 
+                     0 0 30px rgba(255, 255, 255, 0.2); 
+      } 
+      50% { 
+        text-shadow: 0 0 20px rgba(255, 255, 255, 1), 
+                     0 0 30px rgba(255, 255, 255, 0.9), 
+                     0 0 40px rgba(255, 255, 255, 0.7); 
+      } 
+    }
     body.dark-mode { background-color: #333; color: #f4f4f4; }
     .container.dark-mode { background-color: #444; color: #f4f4f4; }
     table.dark-mode { background-color: #555; color: #f4f4f4; }
@@ -74,11 +205,45 @@
     .current-day.dark-mode { background-color: #4a0e8f; color: #fff; }
     .current-day.dark-mode input { background-color: #5c1db3; color: #fff; }
     body.dark-mode .autor-info { color: #aaa; }
-    #auth-container { max-width: 400px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); text-align: center; }
-    #auth-container input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 3px; }
-    #auth-container button { width: 95%; padding: 10px; margin: 10px 0; border: none; background-color: #4CAF50; color: #fff; font-size: 16px; border-radius: 3px; cursor: pointer; }
+    #auth-container { 
+      max-width: 400px; 
+      margin: 20px auto; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 5px; 
+      box-shadow: 0 0 5px rgba(0,0,0,0.1); 
+      text-align: center; 
+    }
+    #auth-container input { 
+      width: 90%; 
+      padding: 10px; 
+      margin: 5px 0; 
+      border: 1px solid #ccc; 
+      border-radius: 3px; 
+    }
+    #auth-container button { 
+      width: 95%; 
+      padding: 10px; 
+      margin: 10px 0; 
+      border: none; 
+      background-color: #4CAF50; 
+      color: #fff; 
+      font-size: 16px; 
+      border-radius: 3px; 
+      cursor: pointer; 
+    }
     #auth-container button:hover { background-color: #45a049; }
-    #saveNotification { position: fixed; bottom: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; display: none; z-index: 1000; }
+    #saveNotification { 
+      position: fixed; 
+      bottom: 20px; 
+      right: 20px; 
+      background-color: #4CAF50; 
+      color: white; 
+      padding: 10px 20px; 
+      border-radius: 5px; 
+      display: none; 
+      z-index: 1000; 
+    }
     #saveNotification.show { display: block; }
   </style>
 </head>
@@ -146,7 +311,6 @@
       </div>
       <button onclick="toggleDarkMode()" class="btn highlight">Prepínať tmavý režim</button>
     </div>
-
     <div class="table-container">
       <table>
         <thead>
@@ -164,14 +328,11 @@
         <tbody id="workDays"></tbody>
       </table>
     </div>
-
     <div id="totalSalary"></div>
-
     <div id="dataSizeContainer">
       <div id="dataSizeText">Veľkosť dát: 0 KB / 4096 KB</div>
       <div id="dataSizeBar"><div id="dataSizeFill"></div></div>
     </div>
-
     <div class="btn-container">
       <button class="btn reset-btn" onclick="resetAll()">Resetovať všetko</button>
       <button class="btn export-btn" onclick="exportToPDF()">Exportovať do PDF</button>
@@ -646,8 +807,7 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       
-      // Nasledujúce riadky načítavajú font Roboto priamo z URL,
-      // rovnako, ako je to urobené v tvojom vzorovom kóde.
+      // Načítavame font Roboto z URL:
       doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
       doc.setFont('Roboto');
       
@@ -854,9 +1014,7 @@
           try {
             const backup = JSON.parse(e.target.result);
             Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            createTable();
-            calculateTotal();
-            updateDataSize();
+            loadFromLocalStorage();  // <-- Tu voláme loadFromLocalStorage() na obnovenie dát
             alert("Záloha obnovená.");
           } catch (error) {
             console.error("Chyba pri obnove zálohy:", error);
