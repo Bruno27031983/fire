@@ -20,6 +20,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
   
   <style>
+    /* Základné štýly */
     body { 
       font-family: 'Roboto', sans-serif; 
       line-height: 1.6; 
@@ -94,7 +95,9 @@
     th { 
       background-color: #f2f2f2; 
     }
-    input[type="tel"], input[type="number"], input[type="text"] { 
+    input[type="tel"],
+    input[type="number"],
+    input[type="text"] { 
       width: 100%; 
       padding: 5px; 
       box-sizing: border-box; 
@@ -197,7 +200,9 @@
     table.dark-mode { background-color: #555; color: #f4f4f4; }
     th.dark-mode { background-color: #666; }
     td.dark-mode { background-color: #444; color: #f4f4f4; }
-    input[type="tel"].dark-mode, input[type="number"].dark-mode, input[type="text"].dark-mode { background-color: #666; color: white; }
+    input[type="tel"].dark-mode,
+    input[type="number"].dark-mode,
+    input[type="text"].dark-mode { background-color: #666; color: white; }
     .btn.dark-mode { color: #333; }
     .reset-btn.dark-mode { background-color: #d32f2f; }
     .export-btn.dark-mode { background-color: #388e3c; }
@@ -248,6 +253,7 @@
   </style>
 </head>
 <body>
+  <!-- Prihlasovací kontajner -->
   <div id="auth-container">
     <h1>Prihlásenie / Registrácia</h1>
     <div id="auth-message">Žiadny používateľ nie je prihlásený.</div>
@@ -264,6 +270,7 @@
     <button onclick="logout()">Odhlásiť sa</button>
   </div>
 
+  <!-- Hlavný kontajner kalkulačky -->
   <div id="calculator-container" class="container" style="display:none;">
     <div class="autor-info">Vytvoril a financoval Bruno</div>
     <h1 id="mainTitle">Bruno's Calculator</h1>
@@ -345,6 +352,22 @@
 
   <div id="saveNotification"></div>
 
+  <!-- Registrácia Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker registrovaný s rozsahom:', registration.scope);
+          })
+          .catch(function(error) {
+            console.error('Registrovanie Service Worker zlyhalo:', error);
+          });
+      });
+    }
+  </script>
+
+  <!-- Zvyšok tvojho JS kódu -->
   <script>
     // -----------------------
     // 1) Konfigurácia Firebase
@@ -1014,7 +1037,7 @@
           try {
             const backup = JSON.parse(e.target.result);
             Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            loadFromLocalStorage();  // <-- Tu voláme loadFromLocalStorage() na obnovenie dát
+            loadFromLocalStorage();  // Načítame dáta z localStorage po obnovení zálohy
             alert("Záloha obnovená.");
           } catch (error) {
             console.error("Chyba pri obnove zálohy:", error);
