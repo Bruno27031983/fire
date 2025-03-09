@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bruno's Calculator s Firebase Auth</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/fire/manifest.json">
   <meta name="theme-color" content="#4CAF50">
   
   <!-- Načítanie písma Roboto z Google Fonts -->
@@ -356,7 +356,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('/fire/service-worker.js')
           .then(function(registration) {
             console.log('Service Worker registrovaný s rozsahom:', registration.scope);
           })
@@ -633,8 +633,8 @@
         updateDataSize();
         if (darkMode) toggleDarkMode();
       } catch (error) {
-        console.error('Chyba pri načítavaní z localStorage:', error);
-        alert("Chyba pri načítavaní z localStorage: " + error.message);
+        console.error('Chyba pri načítaní z localStorage:', error);
+        alert("Chyba pri načítaní z localStorage: " + error.message);
       }
     }
 
