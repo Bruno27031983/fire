@@ -68,6 +68,26 @@
       right: 10px;
       font-size: 12px;
     }
+    /* Tmavý režim */
+    body.dark-mode {
+      background-color: #333;
+      color: #f4f4f4;
+    }
+    .container.dark-mode {
+      background-color: #444;
+    }
+    table.dark-mode th, table.dark-mode td {
+      background-color: #555;
+      color: #f4f4f4;
+    }
+    input[type="text"].dark-mode, input[type="number"].dark-mode {
+      background-color: #666;
+      color: white;
+    }
+    button.dark-mode {
+      background-color: #388e3c;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -105,6 +125,7 @@
           <option value="1">1</option>
           <option value="2">2</option>
         </select><br>
+        <button onclick="toggleDarkMode()">Prepínať tmavý režim</button>
         <button onclick="saveToFirebase()">Uložiť do Firebase</button>
       </div>
       <div class="table-container">
@@ -112,7 +133,7 @@
           <thead>
             <tr>
               <th>Deň</th>
-              <th>Prichod</th>
+              <th>Príchod</th>
               <th>Odchod</th>
               <th>Prestávka</th>
               <th>Odpracované (h)</th>
@@ -123,6 +144,7 @@
           <tbody id="work-days-body"></tbody>
         </table>
       </div>
+      <div id="total-salary"></div>
       <div id="data-size"></div>
     </div>
   </div>
@@ -132,17 +154,17 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
 
   <script>
     // Firebase konfigurácia – NAHRAĎ TÝMITO HODNOTAMI SVOJE SKUTOČNÉ HODNOTY Z FIREBASE CONSOLE
     const firebaseConfig = {
-      apiKey : "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo" , 
-  authDomain : "bruno-3cee2.firebaseapp.com" , 
-  projectId : "bruno-3cee2" , 
-  storageBucket : "bruno-3cee2.firebasestorage.app" , 
-  messagingSenderId : "155545319308" , 
-  appId : "1:155545319308:web:5da498ff1cd3e1833888a9" , 
-  meranie ID : "G-ZQB1NQNSYE" 
+      apiKey: "tvoj-api-key",
+      authDomain: "tvoj-auth-domain",
+      projectId: "tvoj-project-id",
+      storageBucket: "tvoj-storage-bucket",
+      messagingSenderId: "tvoj-sender-id",
+      appId: "tvoj-app-id"
     };
 
     // Inicializácia Firebase
@@ -150,27 +172,13 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Povolenie offline podpory pre Firestore
+    // Povolenie offline podpory
     db.enablePersistence()
-      .then(() => {
-        console.log("Offline persistence enabled for Firestore");
-      })
-      .catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.log("Multiple tabs open, persistence can only work in one tab at a time");
-        } else if (err.code === 'unimplemented') {
-          console.log("Persistence is not available on this platform");
-        }
-      });
-
-    // Povolenie offline podpory pre Authentication
+      .then(() => console.log("Offline persistence enabled for Firestore"))
+      .catch((err) => console.error("Error enabling Firestore persistence:", err));
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(() => {
-        console.log('Offline persistence enabled for Auth');
-      })
-      .catch((error) => {
-        console.error('Error enabling offline persistence:', error);
-      });
+      .then(() => console.log("Offline persistence enabled for Auth"))
+      .catch((err) => console.error("Error enabling Auth persistence:", err));
 
     let currentMonth = 0;
     let currentYear = 0;
@@ -179,77 +187,76 @@
     let hourlyWage = 10;
     let taxRate = 0.02;
     let monthData = {};
+    let isDarkMode = false;
 
-    // Funkcia na obnovu stavu pri načítaní
+    // Obnova stavu pri načítaní
     document.addEventListener('DOMContentLoaded', () => {
       const currentDate = new Date();
       currentMonth = currentDate.getMonth();
       currentYear = currentDate.getFullYear();
+
+      // Načítanie z localStorage
       decimalPlaces = parseInt(localStorage.getItem('decimalPlaces')) || 1;
       employeeName = localStorage.getItem('employeeName') || '';
       hourlyWage = parseFloat(localStorage.getItem('hourlyWage')) || 10;
       taxRate = parseFloat(localStorage.getItem('taxRate')) / 100 || 0.02;
       monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+      isDarkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
+      if (isDarkMode) toggleDarkMode();
+
       populateYearSelect();
+      const monthSelect = document.getElementById('month-select');
+      const yearSelect = document.getElementById('year-select');
+      const decimalPlacesSelect = document.getElementById('decimal-places-select');
       monthSelect.value = currentMonth;
       yearSelect.value = currentYear;
       decimalPlacesSelect.value = decimalPlaces;
-      employeeNameInput.value = employeeName;
-      hourlyWageInput.value = hourlyWage;
-      taxRateInput.value = taxRate * 100;
-      createTable();
-      calculateTotal();
-      updateDataSize();
+      document.getElementById('employee-name').value = employeeName;
+      document.getElementById('hourly-wage').value = hourlyWage;
+      document.getElementById('tax-rate').value = taxRate * 100;
 
-      // Obnov stav prihlásenia z localStorage pred inicializáciou auth
-      const savedAuthState = JSON.parse(localStorage.getItem('authState'));
-      if (savedAuthState) {
-        // Simulácia prihlásenia z lokálnej cache
-        auth.currentUser = { uid: savedAuthState.uid, email: savedAuthState.email };
-        handleAuthState(true); // Okamžite obnov UI
+      // Obnova stavu prihlásenia
+      const savedAuthState = JSON.parse(localStorage.getItem('authState')) || { isLoggedIn: false };
+      if (savedAuthState.isLoggedIn && !navigator.onLine) {
+        handleAuthState(true); // Offline simulácia prihlásenia
+        loadFromLocalStorage();
       }
 
-      // Monitorovanie stavu prihlásenia
+      // Monitorovanie stavu prihlásenia a siete
       auth.onAuthStateChanged((user) => {
-        if (user || (savedAuthState && !navigator.onLine)) {
+        if (user || (savedAuthState.isLoggedIn && !navigator.onLine)) {
+          if (user) {
+            localStorage.setItem('authState', JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              isLoggedIn: true
+            }));
+          }
           handleAuthState(true);
           loadFromLocalOrFirebase();
         } else {
+          localStorage.setItem('authState', JSON.stringify({ isLoggedIn: false }));
           handleAuthState(false);
         }
       });
 
-      // Detekcia stavu siete
       window.addEventListener('online', () => {
-        if (savedAuthState) {
-          handleAuthState(true);
+        if (savedAuthState.isLoggedIn) {
           loadFromLocalOrFirebase();
         }
       });
       window.addEventListener('offline', () => {
-        if (savedAuthState) {
-          handleAuthState(true); // Použi lokálne dáta offline
+        if (savedAuthState.isLoggedIn) {
+          handleAuthState(true);
+          loadFromLocalStorage();
         }
       });
+
+      createTable();
+      calculateTotal();
+      updateDataSize();
     });
 
-    // Funkcia na obnovu UI podľa stavu prihlásenia
-    function handleAuthState(isLoggedIn) {
-      const authContainer = document.getElementById('auth-container');
-      const calculatorContainer = document.getElementById('calculator-container');
-      const authMessage = document.getElementById('auth-message');
-      if (isLoggedIn) {
-        authMessage.textContent = `Prihlásený: ${localStorage.getItem('authState') ? JSON.parse(localStorage.getItem('authState')).email : 'Neznámy'}`;
-        authContainer.style.display = 'none';
-        calculatorContainer.style.display = 'block';
-      } else {
-        authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
-        authContainer.style.display = 'block';
-        calculatorContainer.style.display = 'none';
-      }
-    }
-
-    // Naplnenie ročníkov a mesiacov
     function populateYearSelect() {
       const yearSelect = document.getElementById('year-select');
       const currentYear = new Date().getFullYear();
@@ -269,14 +276,13 @@
       });
     }
 
-    // Vytvorenie tabuľky
     function createTable() {
       const tbody = document.getElementById('work-days-body');
       tbody.innerHTML = '';
       const month = parseInt(document.getElementById('month-select').value);
       const year = parseInt(document.getElementById('year-select').value);
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
+      decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
       employeeName = document.getElementById('employee-name').value;
       hourlyWage = parseFloat(document.getElementById('hourly-wage').value);
       taxRate = parseFloat(document.getElementById('tax-rate').value) / 100;
@@ -285,7 +291,7 @@
       localStorage.setItem('employeeName', employeeName);
       localStorage.setItem('hourlyWage', hourlyWage);
       localStorage.setItem('taxRate', taxRate * 100);
-      localStorage.setItem('workDaysData', JSON.stringify(monthData));
+      localStorage.setItem('darkMode', isDarkMode);
 
       for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(year, month, i);
@@ -293,9 +299,9 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${dayName} (${i})</td>
-          <td><input type="text" class="arrival-${i}" value="${monthData[`arrival-${i}`] || ''}" placeholder="HH:MM"></td>
-          <td><input type="text" class="departure-${i}" value="${monthData[`departure-${i}`] || ''}" placeholder="HH:MM"></td>
-          <td><input type="text" class="break-${i}" value="${monthData[`break-${i}`] || ''}" placeholder="prestávka"></td>
+          <td><input type="text" class="arrival-${i}" value="${monthData[`arrival-${i}`] || ''}" placeholder="HH:MM" oninput="updateRow(${i})"></td>
+          <td><input type="text" class="departure-${i}" value="${monthData[`departure-${i}`] || ''}" placeholder="HH:MM" oninput="updateRow(${i})"></td>
+          <td><input type="text" class="break-${i}" value="${monthData[`break-${i}`] || ''}" placeholder="prestávka" oninput="updateRow(${i})"></td>
           <td><input type="number" class="worked-${i}" value="${monthData[`worked-${i}`] || 0}" step="0.01" readonly></td>
           <td><input type="number" class="gross-${i}" value="${monthData[`gross-${i}`] || 0}" step="0.01" readonly></td>
           <td><input type="number" class="net-${i}" value="${monthData[`net-${i}`] || 0}" step="0.01" readonly></td>
@@ -304,9 +310,9 @@
         updateRow(i);
       }
       calculateTotal();
+      saveToLocalStorage();
     }
 
-    // Aktualizácia riadka
     function updateRow(day) {
       const arrival = document.querySelector(`.arrival-${day}`).value;
       const departure = document.querySelector(`.departure-${day}`).value;
@@ -314,9 +320,6 @@
       const workedInput = document.querySelector(`.worked-${day}`);
       const grossInput = document.querySelector(`.gross-${day}`);
       const netInput = document.querySelector(`.net-${day}`);
-      const decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
-      hourlyWage = parseFloat(document.getElementById('hourly-wage').value);
-      taxRate = parseFloat(document.getElementById('tax-rate').value) / 100;
 
       if (arrival && departure) {
         const [arrH, arrM] = arrival.split(':').map(Number);
@@ -336,16 +339,15 @@
         monthData[`worked-${day}`] = workedHours.toFixed(decimalPlaces);
         monthData[`gross-${day}`] = grossPay.toFixed(decimalPlaces);
         monthData[`net-${day}`] = netPay.toFixed(decimalPlaces);
-        localStorage.setItem('workDaysData', JSON.stringify(monthData));
       } else {
         workedInput.value = '0';
         grossInput.value = '0';
         netInput.value = '0';
       }
       calculateTotal();
+      saveToLocalStorage();
     }
 
-    // Výpočet celkového súčtu
     function calculateTotal() {
       const decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
       let totalWorked = 0;
@@ -360,110 +362,48 @@
         totalGross += gross;
         totalNet += net;
       }
-      document.getElementById('work-days-body').innerHTML += `
-        <tr>
-          <td>Celkovo</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td>${totalWorked.toFixed(decimalPlaces)} h</td>
-          <td>${totalGross.toFixed(decimalPlaces)} €</td>
-          <td>${totalNet.toFixed(decimalPlaces)} €</td>
-        </tr>
+      document.getElementById('total-salary').innerHTML = `
+        Celkový odpracovaný čas: ${totalWorked.toFixed(decimalPlaces)} h<br>
+        Celková hrubá mzda: ${totalGross.toFixed(decimalPlaces)} €<br>
+        Celková čistá mzda: ${totalNet.toFixed(decimalPlaces)} €
       `;
+      saveToLocalStorage();
     }
 
-    // Aktualizácia veľkosti dát
     function updateDataSize() {
       const dataSize = JSON.stringify(monthData).length;
       document.getElementById('data-size').textContent = `Veľkosť dát: ${dataSize} bajtov`;
     }
 
-    // Event listenery
-    document.getElementById('month-select').addEventListener('change', createTable);
-    document.getElementById('year-select').addEventListener('change', createTable);
-    document.getElementById('decimal-places-select').addEventListener('change', () => {
-      decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
-      localStorage.setItem('decimalPlaces', decimalPlaces);
-      createTable();
-    });
-    document.getElementById('employee-name').addEventListener('input', (e) => {
-      employeeName = e.target.value;
+    function saveToLocalStorage() {
+      localStorage.setItem('workDaysData', JSON.stringify(monthData));
       localStorage.setItem('employeeName', employeeName);
-    });
-    document.getElementById('hourly-wage').addEventListener('input', (e) => {
-      hourlyWage = parseFloat(e.target.value);
       localStorage.setItem('hourlyWage', hourlyWage);
+      localStorage.setItem('taxRate', taxRate * 100);
+      localStorage.setItem('decimalPlaces', decimalPlaces);
+      localStorage.setItem('darkMode', isDarkMode);
+      updateDataSize();
+    }
+
+    function loadFromLocalStorage() {
+      employeeName = localStorage.getItem('employeeName') || '';
+      hourlyWage = parseFloat(localStorage.getItem('hourlyWage')) || 10;
+      taxRate = parseFloat(localStorage.getItem('taxRate')) / 100 || 0.02;
+      monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+      decimalPlaces = parseInt(localStorage.getItem('decimalPlaces')) || 1;
+      isDarkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
+      document.getElementById('employee-name').value = employeeName;
+      document.getElementById('hourly-wage').value = hourlyWage;
+      document.getElementById('tax-rate').value = taxRate * 100;
+      document.getElementById('decimal-places-select').value = decimalPlaces;
+      if (isDarkMode) toggleDarkMode();
       createTable();
-    });
-    document.getElementById('tax-rate').addEventListener('input', (e) => {
-      taxRate = parseFloat(e.target.value) / 100;
-      localStorage.setItem('taxRate', e.target.value);
-      createTable();
-    });
-    document.querySelectorAll('input[id^="arrival-"], input[id^="departure-"], input[id^="break-"]').forEach(input => {
-      input.addEventListener('input', (e) => {
-        const day = e.target.id.split('-')[1];
-        updateRow(day);
-      });
-    });
-
-    // Firebase funkcie
-    function register() {
-      const email = document.getElementById('reg-email').value;
-      const password = document.getElementById('reg-password').value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          console.log("Registered:", user.email);
-          const uid = user.uid;
-          db.collection("users").doc(uid).set({
-            email: email,
-            createdAt: new Date().toISOString()
-          }).then(() => {
-            console.log("User data saved");
-            localStorage.setItem('authState', JSON.stringify({ uid: uid, email: email }));
-          }).catch((error) => {
-            console.error("Error saving user data:", error);
-          });
-        })
-        .catch((error) => {
-          console.error("Error registering:", error.message);
-        });
     }
 
-    function login() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          console.log("Logged in:", user.email);
-          localStorage.setItem('authState', JSON.stringify({ uid: user.uid, email: user.email }));
-        })
-        .catch((error) => {
-          console.error("Error logging in:", error.message);
-        });
-    }
-
-    function logout() {
-      auth.signOut()
-        .then(() => {
-          console.log("Logged out");
-          localStorage.removeItem('authState');
-          handleAuthState(false);
-        })
-        .catch((error) => {
-          console.error("Error logging out:", error.message);
-        });
-    }
-
-    // Optimalizovaná funkcia na načítanie dát
     function loadFromLocalOrFirebase() {
       const user = auth.currentUser || (JSON.parse(localStorage.getItem('authState')) && { uid: JSON.parse(localStorage.getItem('authState')).uid });
       if (user) {
         const uid = user.uid;
-        // Skús načítanie z Firestore, ak je online, inak použite lokálne dáta
         db.collection("users").doc(uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`).get()
           .then((doc) => {
             if (doc.exists) {
@@ -481,7 +421,6 @@
               localStorage.setItem('taxRate', taxRate * 100);
               createTable();
             } else {
-              console.log("No data found in Firestore, using local storage");
               loadFromLocalStorage();
             }
           })
@@ -490,18 +429,6 @@
             loadFromLocalStorage();
           });
       }
-    }
-
-    // Načítanie dát z localStorage
-    function loadFromLocalStorage() {
-      employeeName = localStorage.getItem('employeeName') || '';
-      hourlyWage = parseFloat(localStorage.getItem('hourlyWage')) || 10;
-      taxRate = parseFloat(localStorage.getItem('taxRate')) / 100 || 0.02;
-      monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
-      document.getElementById('employee-name').value = employeeName;
-      document.getElementById('hourly-wage').value = hourlyWage;
-      document.getElementById('tax-rate').value = taxRate * 100;
-      createTable();
     }
 
     function saveToFirebase() {
@@ -517,30 +444,110 @@
         })
           .then(() => {
             console.log("Data saved to Firebase");
-            localStorage.setItem('workDaysData', JSON.stringify(monthData));
-            localStorage.setItem('employeeName', employeeName);
-            localStorage.setItem('hourlyWage', hourlyWage);
-            localStorage.setItem('taxRate', taxRate * 100);
+            saveToLocalStorage();
           })
           .catch((error) => {
             console.error("Error saving to Firebase, data saved locally:", error);
-            localStorage.setItem('workDaysData', JSON.stringify(monthData));
-            localStorage.setItem('employeeName', employeeName);
-            localStorage.setItem('hourlyWage', hourlyWage);
-            localStorage.setItem('taxRate', taxRate * 100);
+            saveToLocalStorage();
           });
       }
+    }
+
+    function handleAuthState(isLoggedIn) {
+      const authContainer = document.getElementById('auth-container');
+      const calculatorContainer = document.getElementById('calculator-container');
+      const authMessage = document.getElementById('auth-message');
+      if (isLoggedIn) {
+        authMessage.textContent = `Prihlásený: ${JSON.parse(localStorage.getItem('authState')).email || 'Neznámy'}`;
+        authContainer.style.display = 'none';
+        calculatorContainer.style.display = 'block';
+      } else {
+        authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
+        authContainer.style.display = 'block';
+        calculatorContainer.style.display = 'none';
+      }
+    }
+
+    function register() {
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          localStorage.setItem('authState', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            isLoggedIn: true
+          }));
+          db.collection("users").doc(user.uid).set({
+            email: email,
+            createdAt: new Date().toISOString()
+          });
+        })
+        .catch((error) => console.error("Error registering:", error.message));
+    }
+
+    function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          localStorage.setItem('authState', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            isLoggedIn: true
+          }));
+        })
+        .catch((error) => console.error("Error logging in:", error.message));
+    }
+
+    function logout() {
+      auth.signOut()
+        .then(() => {
+          localStorage.setItem('authState', JSON.stringify({ isLoggedIn: false }));
+          handleAuthState(false);
+        })
+        .catch((error) => console.error("Error logging out:", error.message));
+    }
+
+    // Event listenery
+    document.getElementById('month-select').addEventListener('change', createTable);
+    document.getElementById('year-select').addEventListener('change', createTable);
+    document.getElementById('decimal-places-select').addEventListener('change', () => {
+      decimalPlaces = parseInt(document.getElementById('decimal-places-select').value);
+      localStorage.setItem('decimalPlaces', decimalPlaces);
+      createTable();
+    });
+    document.getElementById('employee-name').addEventListener('input', (e) => {
+      employeeName = e.target.value;
+      saveToLocalStorage();
+    });
+    document.getElementById('hourly-wage').addEventListener('input', (e) => {
+      hourlyWage = parseFloat(e.target.value);
+      saveToLocalStorage();
+      createTable();
+    });
+    document.getElementById('tax-rate').addEventListener('input', (e) => {
+      taxRate = parseFloat(e.target.value) / 100;
+      saveToLocalStorage();
+      createTable();
+    });
+
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      document.body.classList.toggle('dark-mode');
+      document.querySelector('.container').classList.toggle('dark-mode');
+      document.querySelectorAll('table th, table td, input[type="text"], input[type="number"]').forEach(el => el.classList.toggle('dark-mode'));
+      document.querySelectorAll('button').forEach(el => el.classList.toggle('dark-mode'));
+      saveToLocalStorage();
     }
 
     // Registrácia Service Worker-a
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/fire/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
+        .then((registration) => console.log('Service Worker registered with scope:', registration.scope))
+        .catch((error) => console.error('Service Worker registration failed:', error));
     }
   </script>
 </body>
