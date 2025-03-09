@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bruno's Calculator s Firebase Auth</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4CAF50">
   
-  <!-- Načítanie písma Roboto z Google Fonts (externá knižnica) -->
+  <!-- Načítanie písma Roboto z Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
   
   <!-- Firebase knižnice -->
@@ -361,17 +361,15 @@
             console.log('Service Worker registrovaný s rozsahom:', registration.scope);
           })
           .catch(function(error) {
-            console.error('Registrovanie Service Worker zlyhalo:', error);
+            console.error('Registrácia Service Worker zlyhala:', error);
           });
       });
     }
   </script>
 
-  <!-- Zvyšok tvojho JS kódu -->
+  <!-- Zvyšok JS kódu -->
   <script>
-    // -----------------------
     // 1) Konfigurácia Firebase
-    // -----------------------
     const firebaseConfig = {
       apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo",
       authDomain: "bruno-3cee2.firebaseapp.com",
@@ -384,9 +382,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // -----------------------
     // 2) Globálne premenné
-    // -----------------------
     let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate, monthData;
     const workDays = document.getElementById('workDays');
     const totalSalaryDiv = document.getElementById('totalSalary');
@@ -401,9 +397,7 @@
     const MAX_DATA_SIZE = 4 * 1024 * 1024;
     const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
 
-    // -----------------------
     // 3) Prihlásenie / odhlásenie
-    // -----------------------
     function register() {
       const email = document.getElementById('registerEmail').value;
       const password = document.getElementById('registerPassword').value;
@@ -459,7 +453,7 @@
           await userDocRef.set({ email: user.email, createdAt: new Date().toISOString() });
           console.log("Vytvorený dokument pre:", uid);
         }
-        loadFromFirebase(); // Načítanie dát po prihlásení
+        loadFromFirebase();
       } else {
         authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
         authContainer.style.display = "block";
@@ -467,9 +461,7 @@
       }
     });
 
-    // -----------------------
     // 4) Funkcie pre ukladanie
-    // -----------------------
     function debounce(func, wait) {
       let timeout;
       return function (...args) {
@@ -646,9 +638,7 @@
       }
     }
 
-    // -----------------------
     // 5) Vytváranie tabuľky
-    // -----------------------
     function getDayName(year, month, day) {
       const daysOfWeek = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
       return daysOfWeek[new Date(year, month, day).getDay()];
@@ -819,9 +809,7 @@
       `;
     }
 
-    // -----------------------
-    // 7) Export do PDF so načítavaním fontu z URL
-    // -----------------------
+    // 7) Export do PDF
     function exportToPDF() {
       if (!window.jspdf) {
         alert("Knižnica jsPDF nie je načítaná.");
@@ -829,16 +817,12 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      
-      // Načítavame font Roboto z URL:
       doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
       doc.setFont('Roboto');
-      
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 25);
-      
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -852,7 +836,6 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
-      
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
@@ -861,7 +844,6 @@
         styles: { font: 'Roboto' },
         alternateRowStyles: { fillColor: [245, 245, 245] }
       });
-      
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
@@ -875,16 +857,12 @@
       }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      
-      // Načítavame font Roboto z URL:
       doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
       doc.setFont('Roboto');
-      
       doc.setFontSize(18);
       doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
       doc.setFontSize(14);
       doc.text(`Meno: ${employeeName}`, 14, 25);
-      
       const tableData = [];
       for (let i = 1; i <= getDaysInMonth(currentMonth); i++) {
         const dayName = getDayName(currentYear, currentMonth, i);
@@ -898,7 +876,6 @@
           tableData.push([`Deň ${i} (${dayName})`, start, end, breakTime, total, gross, net]);
         }
       }
-      
       doc.autoTable({
         head: [['Deň', 'Príchod', 'Odchod', 'Prestávka', 'Odpracované', 'Hrubá Mzda (€)', 'Čistá Mzda (€)']],
         body: tableData,
@@ -907,11 +884,9 @@
         styles: { font: 'Roboto' },
         alternateRowStyles: { fillColor: [245, 245, 245] }
       });
-      
       const totalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(totalSalaryDiv.innerText, 14, totalY);
-      
       const pdfBlob = doc.output('blob');
       const pdfFile = new File(
         [pdfBlob],
@@ -936,9 +911,7 @@
       }
     }
 
-    // -----------------------
     // 8) Ostatné nastavenia
-    // -----------------------
     function changeDecimalPlaces() {
       decimalPlaces = parseInt(decimalPlacesSelect.value);
       localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
@@ -1004,9 +977,7 @@
       debouncedSaveToLocalStorage();
     }
 
-    // -----------------------
     // 9) Zálohovanie a obnova
-    // -----------------------
     function createBackup() {
       const backup = {
         workDaysData: localStorage.getItem('workDaysData'),
@@ -1037,7 +1008,7 @@
           try {
             const backup = JSON.parse(e.target.result);
             Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            loadFromLocalStorage();  // Načítame dáta z localStorage po obnovení zálohy
+            loadFromLocalStorage();
             alert("Záloha obnovená.");
           } catch (error) {
             console.error("Chyba pri obnove zálohy:", error);
@@ -1049,9 +1020,7 @@
       fileInput.click();
     }
 
-    // -----------------------
     // 10) Inicializácia
-    // -----------------------
     document.addEventListener('DOMContentLoaded', () => {
       const currentDate = new Date();
       currentMonth = currentDate.getMonth();
