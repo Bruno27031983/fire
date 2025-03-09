@@ -40,6 +40,7 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch(() => {
+            // Fallback na index.html pri offline režime
             return caches.match('/fire/index.html');
           });
       })
