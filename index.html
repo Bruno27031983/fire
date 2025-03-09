@@ -94,7 +94,7 @@
         <label>Hodinová mzda (€):</label>
         <input type="number" id="hourly-wage" value="10" step="0.01"><br>
         <label>Daňové percento (%):</label>
-        <input type="number" id="tax-rate" value="2" step="0.01"><br>
+        <input type="type="number" id="tax-rate" value="2" step="0.01"><br>
         <label>Mesiac:</label>
         <select id="month-select"></select><br>
         <label>Rok:</label>
@@ -105,7 +105,7 @@
           <option value="1">1</option>
           <option value="2">2</option>
         </select><br>
-        <button onclick="saveToFirebase()">Prepínať tmavý režim</button> <!-- Placeholder pre tvoju funkcionalitu -->
+        <button onclick="saveToFirebase()">Uložiť do Firebase</button>
       </div>
       <div class="table-container">
         <table id="work-days-table">
@@ -136,12 +136,13 @@
   <script>
     // Firebase konfigurácia – NAHRAĎ TÝMITO HODNOTAMI SVOJE SKUTOČNÉ HODNOTY Z FIREBASE CONSOLE
     const firebaseConfig = {
-      apiKey:  "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo" , 
-      authDomain: "bruno-3cee2.firebaseapp.com" , 
-      projectId:  "bruno-3cee2" , 
-      storageBucket: "bruno-3cee2.firebasestorage.app" , 
-      messagingSenderId: "155545319308" , 
-      appId:"1:155545319308:web:5da498ff1cd3e1833888a9" , 
+      apiKey : "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo" , 
+  authDomain : "bruno-3cee2.firebaseapp.com" , 
+  projectId : "bruno-3cee2" , 
+  storageBucket : "bruno-3cee2.firebasestorage.app" , 
+  messagingSenderId : "155545319308" , 
+  appId : "1:155545319308:web:5da498ff1cd3e1833888a9" , 
+  meranie ID : "G-ZQB1NQNSYE" 
     };
 
     // Inicializácia Firebase
@@ -179,7 +180,7 @@
     let taxRate = 0.02;
     let monthData = {};
 
-    // Funkcia na obnovu stavu prihlásenia z localStorage
+    // Funkcia na obnovu stavu pri načítaní
     document.addEventListener('DOMContentLoaded', () => {
       const currentDate = new Date();
       currentMonth = currentDate.getMonth();
@@ -208,7 +209,14 @@
           if (user || savedAuthState) {
             document.getElementById('auth-container').style.display = 'none';
             document.getElementById('calculator-container').style.display = 'block';
-            loadFromFirebase();
+            loadFromLocalOrFirebase();
+          }
+        });
+      } else {
+        auth.onAuthStateChanged((user) => {
+          if (!user) {
+            document.getElementById('auth-container').style.display = 'block';
+            document.getElementById('calculator-container').style.display = 'none';
           }
         });
       }
@@ -352,7 +360,7 @@
       localStorage.setItem('decimalPlaces', decimalPlaces);
       createTable();
     });
-    document.getElementindex.htmlElement('employee-name').addEventListener('input', (e) => {
+    document.getElementById('employee-name').addEventListener('input', (e) => {
       employeeName = e.target.value;
       localStorage.setItem('employeeName', employeeName);
     });
@@ -421,36 +429,12 @@
         });
     }
 
-    auth.onAuthStateChanged(async (user) => {
-      const authMessage = document.getElementById('auth-message');
-      const authContainer = document.getElementById('auth-container');
-      const calculatorContainer = document.getElementById('calculator-container');
-      if (user) {
-        authMessage.textContent = "Prihlásený: " + user.email;
-        authContainer.style.display = "none";
-        calculatorContainer.style.display = "block";
-        const uid = user.uid;
-        const userDocRef = db.collection("users").doc(uid);
-        const userDocSnap = await userDocRef.get().catch(() => {
-          console.log('Offline or error fetching user data, using cached state');
-        });
-        if (!userDocSnap.exists) {
-          await userDocRef.set({ email: user.email, createdAt: new Date().toISOString() })
-            .catch(() => console.log('Offline, user data not synced'));
-        }
-        loadFromFirebase();
-      } else {
-        authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
-        authContainer.style.display = "block";
-        calculatorContainer.style.display = "none";
-      }
-      localStorage.setItem('authState', JSON.stringify(user ? { uid: user.uid, email: user.email } : null));
-    });
-
-    function loadFromFirebase() {
+    // Optimalizovaná funkcia na načítanie dát
+    function loadFromLocalOrFirebase() {
       const user = auth.currentUser;
       if (user) {
         const uid = user.uid;
+        // Skús načítanie z Firestore, ak je online, inak použite lokálne dáta
         db.collection("users").doc(uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`).get()
           .then((doc) => {
             if (doc.exists) {
@@ -462,15 +446,33 @@
               document.getElementById('employee-name').value = employeeName;
               document.getElementById('hourly-wage').value = hourlyWage;
               document.getElementById('tax-rate').value = taxRate * 100;
+              localStorage.setItem('workDaysData', JSON.stringify(monthData));
+              localStorage.setItem('employeeName', employeeName);
+              localStorage.setItem('hourlyWage', hourlyWage);
+              localStorage.setItem('taxRate', taxRate * 100);
               createTable();
             } else {
-              console.log("No data found, using local storage");
+              console.log("No data found in Firestore, using local storage");
+              loadFromLocalStorage();
             }
           })
           .catch((error) => {
-            console.error("Error loading from Firebase:", error);
+            console.warn("Offline or error fetching from Firebase, using local storage:", error);
+            loadFromLocalStorage();
           });
       }
+    }
+
+    // Načítanie dát z localStorage
+    function loadFromLocalStorage() {
+      employeeName = localStorage.getItem('employeeName') || '';
+      hourlyWage = parseFloat(localStorage.getItem('hourlyWage')) || 10;
+      taxRate = parseFloat(localStorage.getItem('taxRate')) / 100 || 0.02;
+      monthData = JSON.parse(localStorage.getItem('workDaysData')) || {};
+      document.getElementById('employee-name').value = employeeName;
+      document.getElementById('hourly-wage').value = hourlyWage;
+      document.getElementById('tax-rate').value = taxRate * 100;
+      createTable();
     }
 
     function saveToFirebase() {
@@ -486,9 +488,17 @@
         })
           .then(() => {
             console.log("Data saved to Firebase");
+            localStorage.setItem('workDaysData', JSON.stringify(monthData));
+            localStorage.setItem('employeeName', employeeName);
+            localStorage.setItem('hourlyWage', hourlyWage);
+            localStorage.setItem('taxRate', taxRate * 100);
           })
           .catch((error) => {
-            console.error("Error saving to Firebase:", error);
+            console.error("Error saving to Firebase, data saved locally:", error);
+            localStorage.setItem('workDaysData', JSON.stringify(monthData));
+            localStorage.setItem('employeeName', employeeName);
+            localStorage.setItem('hourlyWage', hourlyWage);
+            localStorage.setItem('taxRate', taxRate * 100);
           });
       }
     }
