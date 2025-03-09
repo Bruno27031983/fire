@@ -3,9 +3,9 @@ const CACHE_NAME = 'brunos-calculator-v1';
 
 // Zoznam súborov na cachovanie
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  '/fire/',              // Root adresár podpriečinka
+  '/fire/index.html',    // Hlavný HTML súbor
+  '/fire/manifest.json', // Manifest súbor
   'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js',
@@ -65,7 +65,7 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch(() => {
-            return caches.match('/index.html');
+            return caches.match('/fire/index.html'); // Fallback na index.html v podpriečinku
           });
       })
   );
