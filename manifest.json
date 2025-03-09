@@ -1,11 +1,9 @@
 {
-  "id": "https://bruno27031983.github.io/fire/",
-  "name": "Bruno's Calculator",
+  "name": "Bruno's Calculator s Firebase",
   "short_name": "BrunoCalc",
-  "description": "Kalkulačka na výpočet mzdy s Firebase autentifikáciou",
   "start_url": "/fire/",
   "display": "standalone",
-  "background_color": "#f4f4f4",
+  "background_color": "#ffffff",
   "theme_color": "#4CAF50",
   "icons": [
     {
@@ -18,7 +16,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "scope": "/fire/",
-  "orientation": "any"
+  ]
 }
