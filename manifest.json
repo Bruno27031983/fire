@@ -19,5 +19,6 @@
       "type": "image/png"
     }
   ],
-  "scope": "/fire/"
+  "scope": "/fire/",
+  "orientation": "any"
 }
