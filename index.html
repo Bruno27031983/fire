@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bruno's Calculator s Firebase Auth</title>
-  <!-- Dôležité: Manifest musí byť odkazovaný, aby sa PWA správne nainštalovala -->
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
   
   <!-- Načítanie písma Roboto z Google Fonts (externá knižnica) -->
@@ -351,13 +350,12 @@
     // 1) Konfigurácia Firebase
     // -----------------------
     const firebaseConfig = {
-      apiKey : "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo" , 
-  authDomain : "bruno-3cee2.firebaseapp.com" , 
-  projectId : "bruno-3cee2" , 
-  storageBucket : "bruno-3cee2.firebasestorage.app" , 
-  messagingSenderId : "155545319308" , 
-  appId : "1:155545319308:web:5da498ff1cd3e1833888a9" , 
-  meranie ID : "G-ZQB1NQNSYE" 
+      apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo",
+      authDomain: "bruno-3cee2.firebaseapp.com",
+      projectId: "bruno-3cee2",
+      storageBucket: "bruno-3cee2.firebasestorage.app",
+      messagingSenderId: "155545319308",
+      appId: "1:155545319308:web:5da498ff1cd3e1833888a9"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -799,13 +797,8 @@
     }
 
     // -----------------------
-    // 7) Export do PDF
+    // 7) Export do PDF so načítavaním fontu z URL
     // -----------------------
-    function getMonthName(month) {
-      const monthNames = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"];
-      return monthNames[month];
-    }
-
     function exportToPDF() {
       if (!window.jspdf) {
         alert("Knižnica jsPDF nie je načítaná.");
@@ -960,6 +953,11 @@
       return new Date(currentYear, month + 1, 0).getDate();
     }
 
+    function getMonthName(month) {
+      const monthNames = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"];
+      return monthNames[month];
+    }
+
     function updateDataSize() {
       const totalData = Object.values(localStorage).join('');
       const bytes = new Blob([totalData]).size;
@@ -1016,7 +1014,7 @@
           try {
             const backup = JSON.parse(e.target.result);
             Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            loadFromLocalStorage();
+            loadFromLocalStorage();  // <-- Tu voláme loadFromLocalStorage() na obnovenie dát
             alert("Záloha obnovená.");
           } catch (error) {
             console.error("Chyba pri obnove zálohy:", error);
@@ -1062,22 +1060,6 @@
         option.textContent = year;
         yearSelect.appendChild(option);
       }
-    }
-
-    // -----------------------
-    // 11) Registrácia Service Worker
-    // -----------------------
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        // TU JE OPRAVENÁ CESTA s bodkou: './service-worker.js'
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(function(registration) {
-            console.log('Service Worker zaregistrovaný s rozsahom:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Registrácia Service Worker zlyhala:', error);
-          });
-      });
     }
   </script>
 </body>
