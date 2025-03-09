@@ -1,20 +1,15 @@
-// Verzia cache
-const CACHE_NAME = 'brunos-calculator-v1';
-
-// Zoznam súborov na cachovanie
+const CACHE_NAME = 'calculator-cache-v1';
 const urlsToCache = [
-  '/fire/',              // Root adresár podpriečinka
-  '/fire/index.html',    // Hlavný HTML súbor
-  '/fire/manifest.json', // Manifest súbor
-  'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js'
+  '/fire/',
+  '/fire/index.html',
+  '/fire/manifest.json',
+  '/fire/service-worker.js',
+  'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js',
+  'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
-// Inštalácia Service Worker-a
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -22,29 +17,9 @@ self.addEventListener('install', (event) => {
         console.log('Otvorená cache a ukladám súbory');
         return cache.addAll(urlsToCache);
       })
-      .catch((error) => {
-        console.error('Chyba pri cachovaní:', error);
-      })
   );
 });
 
-// Aktivácia Service Worker-a
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Odstraňujem starú cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// Zachytávanie požiadaviek
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
@@ -65,7 +40,7 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch(() => {
-            return caches.match('/fire/index.html'); // Fallback na index.html v podpriečinku
+            return caches.match('/fire/index.html');
           });
       })
   );
