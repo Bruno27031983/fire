@@ -68,7 +68,6 @@
       right: 10px;
       font-size: 12px;
     }
-    /* Tmavý režim */
     body.dark-mode {
       background-color: #333;
       color: #f4f4f4;
@@ -149,35 +148,36 @@
     </div>
   </div>
 
-  <!-- Firebase a ďalšie knižnice -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <!-- Načítanie ďalších knižníc -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
 
-  <script>
+  <script type="module">
+    // Import Firebase
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, setPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getFirestore, enablePersistence, collection, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+
     // Firebase konfigurácia – NAHRAĎ TÝMITO HODNOTAMI SVOJE SKUTOČNÉ HODNOTY Z FIREBASE CONSOLE
     const firebaseConfig = {
-      apiKey : "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo" , 
-  authDomain : "bruno-3cee2.firebaseapp.com" , 
-  projectId : "bruno-3cee2" , 
-  storageBucket : "bruno-3cee2.firebasestorage.app" , 
-  messagingSenderId : "155545319308" , 
-  appId : "1:155545319308:web:5da498ff1cd3e1833888a9" , 
-  meranie ID : "G-ZQB1NQNSYE" 
+      apiKey: "tvoj-api-key",
+      authDomain: "tvoj-auth-domain",
+      projectId: "tvoj-project-id",
+      storageBucket: "tvoj-storage-bucket",
+      messagingSenderId: "tvoj-sender-id",
+      appId: "tvoj-app-id"
     };
 
     // Inicializácia Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
     // Povolenie offline podpory
-    db.enablePersistence()
+    enablePersistence(db)
       .then(() => console.log("Offline persistence enabled for Firestore"))
       .catch((err) => console.error("Error enabling Firestore persistence:", err));
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    setPersistence(auth, "local")
       .then(() => console.log("Offline persistence enabled for Auth"))
       .catch((err) => console.error("Error enabling Auth persistence:", err));
 
@@ -224,7 +224,7 @@
       }
 
       // Monitorovanie stavu prihlásenia a siete
-      auth.onAuthStateChanged((user) => {
+      onAuthStateChanged(auth, (user) => {
         if (user || (savedAuthState.isLoggedIn && !navigator.onLine)) {
           if (user) {
             localStorage.setItem('authState', JSON.stringify({
@@ -405,10 +405,10 @@
       const user = auth.currentUser || (JSON.parse(localStorage.getItem('authState')) && { uid: JSON.parse(localStorage.getItem('authState')).uid });
       if (user) {
         const uid = user.uid;
-        db.collection("users").doc(uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`).get()
-          .then((doc) => {
-            if (doc.exists) {
-              const data = doc.data();
+        getDoc(doc(db, "users", uid, "calculatorData", `${currentYear}-${currentMonth}`))
+          .then((docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
               monthData = data.workDaysData || {};
               employeeName = data.employeeName || '';
               hourlyWage = data.hourlyWage || 10;
@@ -436,7 +436,7 @@
       const user = auth.currentUser || (JSON.parse(localStorage.getItem('authState')) && { uid: JSON.parse(localStorage.getItem('authState')).uid });
       if (user) {
         const uid = user.uid;
-        db.collection("users").doc(uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`).set({
+        setDoc(doc(db, "users", uid, "calculatorData", `${currentYear}-${currentMonth}`), {
           workDaysData: monthData,
           employeeName: employeeName,
           hourlyWage: hourlyWage,
@@ -469,10 +469,10 @@
       }
     }
 
-    function register() {
+    window.register = function() {
       const email = document.getElementById('reg-email').value;
       const password = document.getElementById('reg-password').value;
-      auth.createUserWithEmailAndPassword(email, password)
+      createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
           const user = userCredential.user;
           localStorage.setItem('authState', JSON.stringify({
@@ -480,18 +480,18 @@
             email: user.email,
             isLoggedIn: true
           }));
-          db.collection("users").doc(user.uid).set({
+          setDoc(doc(db, "users", user.uid), {
             email: email,
             createdAt: new Date().toISOString()
           });
         })
         .catch((error) => console.error("Error registering:", error.message));
-    }
+    };
 
-    function login() {
+    window.login = function() {
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
-      auth.signInWithEmailAndPassword(email, password)
+      signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
           const user = userCredential.user;
           localStorage.setItem('authState', JSON.stringify({
@@ -501,16 +501,16 @@
           }));
         })
         .catch((error) => console.error("Error logging in:", error.message));
-    }
+    };
 
-    function logout() {
-      auth.signOut()
+    window.logout = function() {
+      signOut(auth)
         .then(() => {
           localStorage.setItem('authState', JSON.stringify({ isLoggedIn: false }));
           handleAuthState(false);
         })
         .catch((error) => console.error("Error logging out:", error.message));
-    }
+    };
 
     // Event listenery
     document.getElementById('month-select').addEventListener('change', createTable);
