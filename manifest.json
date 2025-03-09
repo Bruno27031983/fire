@@ -2,7 +2,7 @@
   "name": "Bruno's Calculator",
   "short_name": "BrunoCalc",
   "description": "Kalkulačka na výpočet mzdy s Firebase autentifikáciou",
-  "start_url": "/index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f4f4",
   "theme_color": "#4CAF50",
