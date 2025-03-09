@@ -1014,7 +1014,7 @@
           try {
             const backup = JSON.parse(e.target.result);
             Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
-            loadFromLocalStorage();  // <-- Tu voláme loadFromLocalStorage() na obnovenie dát
+            loadFromLocalStorage();
             alert("Záloha obnovená.");
           } catch (error) {
             console.error("Chyba pri obnove zálohy:", error);
@@ -1060,6 +1060,21 @@
         option.textContent = year;
         yearSelect.appendChild(option);
       }
+    }
+
+    // -----------------------
+    // 11) Registrácia Service Worker
+    // -----------------------
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker zaregistrovaný s rozsahom:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Registrácia Service Worker zlyhala:', error);
+          });
+      });
     }
   </script>
 </body>
