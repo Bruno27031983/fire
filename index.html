@@ -94,7 +94,7 @@
         <label>Hodinová mzda (€):</label>
         <input type="number" id="hourly-wage" value="10" step="0.01"><br>
         <label>Daňové percento (%):</label>
-        <input type="type="number" id="tax-rate" value="2" step="0.01"><br>
+        <input type="number" id="tax-rate" value="2" step="0.01"><br>
         <label>Mesiac:</label>
         <select id="month-select"></select><br>
         <label>Rok:</label>
@@ -201,26 +201,53 @@
       calculateTotal();
       updateDataSize();
 
-      // Obnov stav prihlásenia z localStorage
+      // Obnov stav prihlásenia z localStorage pred inicializáciou auth
       const savedAuthState = JSON.parse(localStorage.getItem('authState'));
       if (savedAuthState) {
-        auth.currentUser = { uid: savedAuthState.uid, email: savedAuthState.email }; // Simulácia prihlásenia
-        auth.onAuthStateChanged((user) => {
-          if (user || savedAuthState) {
-            document.getElementById('auth-container').style.display = 'none';
-            document.getElementById('calculator-container').style.display = 'block';
-            loadFromLocalOrFirebase();
-          }
-        });
-      } else {
-        auth.onAuthStateChanged((user) => {
-          if (!user) {
-            document.getElementById('auth-container').style.display = 'block';
-            document.getElementById('calculator-container').style.display = 'none';
-          }
-        });
+        // Simulácia prihlásenia z lokálnej cache
+        auth.currentUser = { uid: savedAuthState.uid, email: savedAuthState.email };
+        handleAuthState(true); // Okamžite obnov UI
       }
+
+      // Monitorovanie stavu prihlásenia
+      auth.onAuthStateChanged((user) => {
+        if (user || (savedAuthState && !navigator.onLine)) {
+          handleAuthState(true);
+          loadFromLocalOrFirebase();
+        } else {
+          handleAuthState(false);
+        }
+      });
+
+      // Detekcia stavu siete
+      window.addEventListener('online', () => {
+        if (savedAuthState) {
+          handleAuthState(true);
+          loadFromLocalOrFirebase();
+        }
+      });
+      window.addEventListener('offline', () => {
+        if (savedAuthState) {
+          handleAuthState(true); // Použi lokálne dáta offline
+        }
+      });
     });
+
+    // Funkcia na obnovu UI podľa stavu prihlásenia
+    function handleAuthState(isLoggedIn) {
+      const authContainer = document.getElementById('auth-container');
+      const calculatorContainer = document.getElementById('calculator-container');
+      const authMessage = document.getElementById('auth-message');
+      if (isLoggedIn) {
+        authMessage.textContent = `Prihlásený: ${localStorage.getItem('authState') ? JSON.parse(localStorage.getItem('authState')).email : 'Neznámy'}`;
+        authContainer.style.display = 'none';
+        calculatorContainer.style.display = 'block';
+      } else {
+        authMessage.textContent = "Žiadny používateľ nie je prihlásený.";
+        authContainer.style.display = 'block';
+        calculatorContainer.style.display = 'none';
+      }
+    }
 
     // Naplnenie ročníkov a mesiacov
     function populateYearSelect() {
@@ -395,6 +422,7 @@
             createdAt: new Date().toISOString()
           }).then(() => {
             console.log("User data saved");
+            localStorage.setItem('authState', JSON.stringify({ uid: uid, email: email }));
           }).catch((error) => {
             console.error("Error saving user data:", error);
           });
@@ -409,7 +437,9 @@
       const password = document.getElementById('login-password').value;
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
-          console.log("Logged in:", userCredential.user.email);
+          const user = userCredential.user;
+          console.log("Logged in:", user.email);
+          localStorage.setItem('authState', JSON.stringify({ uid: user.uid, email: user.email }));
         })
         .catch((error) => {
           console.error("Error logging in:", error.message);
@@ -420,9 +450,8 @@
       auth.signOut()
         .then(() => {
           console.log("Logged out");
-          document.getElementById('auth-container').style.display = 'block';
-          document.getElementById('calculator-container').style.display = 'none';
           localStorage.removeItem('authState');
+          handleAuthState(false);
         })
         .catch((error) => {
           console.error("Error logging out:", error.message);
@@ -431,7 +460,7 @@
 
     // Optimalizovaná funkcia na načítanie dát
     function loadFromLocalOrFirebase() {
-      const user = auth.currentUser;
+      const user = auth.currentUser || (JSON.parse(localStorage.getItem('authState')) && { uid: JSON.parse(localStorage.getItem('authState')).uid });
       if (user) {
         const uid = user.uid;
         // Skús načítanie z Firestore, ak je online, inak použite lokálne dáta
@@ -476,7 +505,7 @@
     }
 
     function saveToFirebase() {
-      const user = auth.currentUser;
+      const user = auth.currentUser || (JSON.parse(localStorage.getItem('authState')) && { uid: JSON.parse(localStorage.getItem('authState')).uid });
       if (user) {
         const uid = user.uid;
         db.collection("users").doc(uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`).set({
