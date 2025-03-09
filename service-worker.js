@@ -1,9 +1,11 @@
 const CACHE_NAME = 'brunos-calculator-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/service-worker.js',
+  './',               // Hlavná cesta (root) v rámci tejto zložky
+  './index.html',
+  './manifest.json',
+  './service-worker.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js',
@@ -26,7 +28,7 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Vráti sa cache, ak existuje, inak pokračuje sa v sieti
+        // Vráti sa cache, ak existuje, inak fetch z internetu
         return response || fetch(event.request);
       })
   );
