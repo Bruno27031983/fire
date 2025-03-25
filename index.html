@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sk">
 <head>
@@ -362,15 +363,9 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // -----------------------
-    // 🔐 Firebase App Check inicializácia
-    // -----------------------
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // Debug mód – odstráň v produkcii
-
-    firebase.appCheck().activate(
-      '6LczmP0qAAAAAAACGalBT9zZekkUr3hLgA2e8o99v', // Vložený tvoj reCAPTCHA v3 "site key"
-      true // Automatické obnovovanie tokenov
-    );
+    // Inicializácia Firebase App Check s ReCAPTCHA v3
+    const appCheck = firebase.appCheck();
+    appCheck.activate('6LczmP0qAAAAAAACGalBT9zZekkUr3hLgA2e8o99v', true); // true znamená, že token sa automaticky obnovuje
 
     // -----------------------
     // 2) Globálne premenné
@@ -659,7 +654,8 @@
           <td>Deň ${i} (${dayName})</td>
           <td><input type="tel" id="start-${currentYear}-${currentMonth}-${i}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'end-${currentYear}-${currentMonth}-${i}')"></td>
           <td><input type="tel" id="end-${currentYear}-${currentMonth}-${i}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'break-${currentYear}-${currentMonth}-${i}')"></td>
-          <td><input type="number" id="break-${currentYear}-${currentMonth}-${i}" min="0" step="0.5" placeholder="prestávka" oninput="handleBreakInput(${i})"></td>
+          <td><input type ""));
+type="number" id="break-${currentYear}-${currentMonth}-${i}" min="0" step="0.5" placeholder="prestávka" oninput="handleBreakInput(${i})"></td>
           <td id="total-${currentYear}-${currentMonth}-${i}">0h 0m (${(0).toFixed(decimalPlaces)} h)</td>
           <td><input type="number" id="gross-${currentYear}-${currentMonth}-${i}" min="0" step="0.01" placeholder="Hrubá Mzda" readonly></td>
           <td><input type="number" id="net-${currentYear}-${currentMonth}-${i}" min="0" step="0.01" placeholder="Čistá Mzda" readonly></td>
