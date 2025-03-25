@@ -14,6 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-check-compat.js"></script> <!-- Pridané pre App Check -->
   
   <!-- jsPDF a autoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -360,6 +361,16 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+
+    // -----------------------
+    // 🔐 Firebase App Check inicializácia
+    // -----------------------
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // Debug mód – odstráň v produkcii
+
+    firebase.appCheck().activate(
+      '6LczmP0qAAAAAAACGalBT9zZekkUr3hLgA2e8o99v', // Vložený tvoj reCAPTCHA v3 "site key"
+      true // Automatické obnovovanie tokenov
+    );
 
     // -----------------------
     // 2) Globálne premenné
