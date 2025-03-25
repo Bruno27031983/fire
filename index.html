@@ -12,6 +12,8 @@
   
   <!-- Firebase knižnice -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <!-- Pridaný skript pre Firebase App Check -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-check-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   
@@ -358,6 +360,11 @@
       appId: "1:155545319308:web:5da498ff1cd3e1833888a9"
     };
     firebase.initializeApp(firebaseConfig);
+    
+    // Inicializácia Firebase App Check
+    const appCheck = firebase.appCheck();
+    appCheck.activate("6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv");
+    
     const db = firebase.firestore();
     const auth = firebase.auth();
 
