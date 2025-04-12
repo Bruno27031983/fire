@@ -87,8 +87,8 @@
   <div id="saveNotification"></div>
 
   <script>
-    // Sekcie 1, 2, 3, 4 (okrem calculateRow, calculateTotal), 8, 9, 10 zostávajú rovnaké
-    // ... (Firebase config, Globals, Auth, Utils, Save/Load (okrem calc.), Settings, Backup/Restore, Init) ...
+    // Sekcie 1, 2, 3, 4 (okrem calculateRow, calculateTotal), 7, 8, 9, 10 zostávajú rovnaké
+    // ... (Firebase config, Globals, Auth, Utils, Save/Load (okrem calc.), PDF, Settings, Backup/Restore, Init) ...
     const firebaseConfig = { apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo", authDomain: "bruno-3cee2.firebaseapp.com", projectId: "bruno-3cee2", storageBucket: "bruno-3cee2.appspot.com", messagingSenderId: "155545319308", appId: "1:155545319308:web:5da498ff1cd3e1833888a9" }; firebase.initializeApp(firebaseConfig); try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', true); } catch (error) { console.warn("Chyba pri aktivácii Firebase App Check:", error); } const db = firebase.firestore(); const auth = firebase.auth();
     let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate; let monthData = {}; const workDays = document.getElementById('workDays'); const totalSalaryDiv = document.getElementById('totalSalary'); const dataSizeText = document.getElementById('dataSizeText'); const dataSizeFill = document.getElementById('dataSizeFill'); const hourlyWageInput = document.getElementById('hourlyWageInput'); const taxRateInput = document.getElementById('taxRateInput'); const monthSelect = document.getElementById('monthSelect'); const yearSelect = document.getElementById('yearSelect'); const decimalPlacesSelect = document.getElementById('decimalPlacesSelect'); const employeeNameInput = document.getElementById('employeeNameInput'); const MAX_DATA_SIZE = 4 * 1024 * 1024; const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
     function register() { const email = document.getElementById('registerEmail').value; const password = document.getElementById('registerPassword').value; auth.createUserWithEmailAndPassword(email, password) .then((userCredential) => { console.log("Registrovaný:", userCredential.user); alert("Registrácia úspešná!"); }) .catch((error) => { console.error("Chyba pri registrácii:", error.message); alert("Chyba pri registrácii: " + error.message); }); }
@@ -162,11 +162,9 @@
     function resetRow(day) { const start = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`); const end = document.getElementById(`end-${currentYear}-${currentMonth}-${day}`); const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); const total = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`); const net = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`); if (start && end && breakTime && total && gross && net) { start.value = ''; end.value = ''; breakTime.value = ''; total.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; gross.value = '0.00'; net.value = '0.00'; calculateAndUpdateTotals(); } }
     function resetAll() { if (confirm('Naozaj chcete resetovať všetky záznamy pre tento mesiac?')) { if (monthData && monthData[currentYear]) { monthData[currentYear][currentMonth] = []; } createTable(); calculateTotal(); debouncedSaveToLocalStorage(); showSaveNotification("Dáta pre aktuálny mesiac boli resetované."); } }
 
-    // --- UPRAVENÁ calculateTotal pre prácu v CENTOCH ---
+    // --- NAJPRESNEJŠIA calculateTotal (sčíta minúty, počíta mzdu až na konci) ---
     function calculateTotal() {
       let grandTotalWorkedMinutes = 0;
-      let grandTotalGrossSalaryInCents = 0;
-      let grandTotalNetSalaryInCents = 0;
       let daysWithEntries = 0;
       const rows = workDays.querySelectorAll('tr');
 
@@ -196,20 +194,17 @@
               const breakMinutes = breakTime * 60;
               const workedMinutesForRow = Math.max(0, diffMinutes - breakMinutes);
 
-              const grossSalaryInCentsForRow = Math.round((workedMinutesForRow / 60) * hourlyWageInCents);
-              const netSalaryInCentsForRow = Math.round(grossSalaryInCentsForRow * (1 - currentTaxRate));
-
               grandTotalWorkedMinutes += workedMinutesForRow;
-              grandTotalGrossSalaryInCents += grossSalaryInCentsForRow;
-              grandTotalNetSalaryInCents += netSalaryInCentsForRow;
 
-               if (workedMinutesForRow > 0) {
+              if (workedMinutesForRow > 0) {
                    daysWithEntries++;
-               }
+              }
           }
       });
 
       const grandTotalDecimalHours = grandTotalWorkedMinutes / 60;
+      const grandTotalGrossSalaryInCents = Math.round(grandTotalDecimalHours * hourlyWageInCents);
+      const grandTotalNetSalaryInCents = Math.round(grandTotalGrossSalaryInCents * (1 - currentTaxRate));
       const grandTotalGrossSalary = grandTotalGrossSalaryInCents / 100;
       const grandTotalNetSalary = grandTotalNetSalaryInCents / 100;
       const averageNetSalary = daysWithEntries > 0 ? (grandTotalNetSalary / daysWithEntries) : 0;
@@ -229,7 +224,7 @@
         <strong>Priemerný odpracovaný čas na deň: ${averageHours}h ${averageMinutes}m (${averageDecimalHours.toFixed(currentDecimalPlaces)} h)</strong>
       `;
     }
-     // --- KONIEC UPRAVENEJ calculateTotal ---
+     // --- KONIEC NAJPRESNEJŠEJ calculateTotal ---
 
     // -----------------------
     // 7) Export do PDF (zostáva rovnaká s opravenou kontrolou)
@@ -259,7 +254,6 @@
     /* createBackup, restoreBackup */
      function createBackup() { try { const backupData = { workDaysData: localStorage.getItem('workDaysData') || '{}', hourlyWage: localStorage.getItem('hourlyWage') || JSON.stringify(10), taxRate: localStorage.getItem('taxRate') || JSON.stringify(2), darkMode: localStorage.getItem('darkMode') || JSON.stringify(false), decimalPlaces: localStorage.getItem('decimalPlaces') || JSON.stringify(1), employeeName: localStorage.getItem('employeeName') || JSON.stringify(''), backupVersion: 1, backupTimestamp: new Date().toISOString() }; const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `bruno-calculator-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showSaveNotification("Záloha úspešne vytvorená."); } catch (error) { console.error("Chyba pri vytváraní zálohy:", error); alert("Nastala chyba pri vytváraní záložného súboru."); } }
      function restoreBackup() { const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = '.json,application/json'; fileInput.onchange = (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const backup = JSON.parse(e.target.result); if (backup && typeof backup.workDaysData === 'string' && typeof backup.hourlyWage === 'string') { localStorage.setItem('workDaysData', backup.workDaysData); localStorage.setItem('hourlyWage', backup.hourlyWage); localStorage.setItem('taxRate', backup.taxRate); localStorage.setItem('darkMode', backup.darkMode); localStorage.setItem('decimalPlaces', backup.decimalPlaces); localStorage.setItem('employeeName', backup.employeeName); loadFromLocalStorage(); showSaveNotification("Záloha úspešne obnovená."); alert("Záloha bola úspešne obnovená. Dáta boli načítané."); saveToFirebase(); } else { alert("Chyba: Súbor zálohy má nesprávny formát."); } } catch (error) { console.error("Chyba pri spracovaní alebo obnove zálohy:", error); alert("Chyba pri čítaní alebo obnove zálohy. Súbor môže byť poškodený alebo mať nesprávny formát."); } }; reader.onerror = (e) => { console.error("Chyba pri čítaní súboru zálohy:", e); alert("Nastala chyba pri čítaní súboru zálohy."); }; reader.readAsText(file); }; fileInput.click(); }
-
 
     // -----------------------
     // 10) Inicializácia (zostáva rovnaká)
