@@ -162,7 +162,7 @@
              moveNext(inputElement, nextId);
         }
     }
-    const debouncedProcessInputCompletion = debounce(processInputCompletion, 850); // Debounce čas
+    const debouncedProcessInputCompletion = debounce(processInputCompletion,500); // Debounce čas
 
     // Pomocná funkcia na validáciu času
     function isTimeValid(timeStr) { const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; return timeRegex.test(timeStr); }
