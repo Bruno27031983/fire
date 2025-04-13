@@ -37,7 +37,7 @@
     th { background-color: #f2f2f2; }
     input[type="tel"], input[type="number"], input[type="text"] { width: 100%; padding: 5px; box-sizing: border-box; background-color: #ffffd0; font-size: 14px; border: 1px solid #ccc; border-radius: 3px; }
     .btn-container { display: flex; flex-direction: column; width: 100%; gap: 15px; margin-top: 20px; }
-    .btn { width: 100%; padding: 15px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; text-align: center; }
+    .btn { width: 100%; padding: 15px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; text-align: center; box-sizing: border-box; /* Pridané pre konzistentný box model */ }
     .reset-btn { background-color: #f44336; } .reset-btn:hover { background-color: #d32f2f; }
     .export-btn { background-color: #4CAF50; } .export-btn:hover { background-color: #388e3c; }
     .restore-btn { background-color: #9C27B0; } .restore-btn:hover { background-color: #7B1FA2; }
@@ -78,7 +78,7 @@
     #loading-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease-out; }
     #loading-container.hidden { opacity: 0; pointer-events: none; }
 
-    /* --- ZAČIATOK PRIDANÝCH CSS ŠTÝLOV --- */
+    /* --- ZAČIATOK PRIDANÝCH/UPRAVENÝCH CSS ŠTÝLOV --- */
     #forgot-password-link {
         display: block; /* Aby bol na samostatnom riadku */
         margin-top: 15px; /* Odstup od prihlasovacieho tlačidla */
@@ -90,26 +90,13 @@
     #forgot-password-link:hover {
         text-decoration: underline; /* Podčiarknutie pri prejdení myšou */
     }
-    #logout-btn {
-        padding: 8px 15px; /* Menšie tlačidlo */
-        font-size: 14px;
-        background-color: #f44336; /* Červená farba */
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-        margin-left: 10px; /* Odstup od ostatných nastavení */
-    }
-    #logout-btn:hover {
-        background-color: #d32f2f;
-    }
-    /* --- KONIEC PRIDANÝCH CSS ŠTÝLOV --- */
+    /* Špecifický štýl pre #logout-btn bol odstránený, používa .btn a .reset-btn */
+    /* --- KONIEC PRIDANÝCH/UPRAVENÝCH CSS ŠTÝLOV --- */
 
   </style>
 </head>
 <body>
-  <!-- HTML obsah zostáva rovnaký -->
+  <!-- HTML obsah -->
   <div id="loading-container"><h1>Nitra 3 : Žilina 2</h1></div>
   <div id="auth-container" style="display:none;">
     <!-- Login/Register form -->
@@ -124,12 +111,8 @@
       <input type="email" id="loginEmail" placeholder="Email">
       <input type="password" id="loginPassword" placeholder="Heslo">
       <button onclick="login()">Prihlásiť sa</button>
-      <!-- --- ZAČIATOK PRIDANÉHO ODKAZU --- -->
       <a id="forgot-password-link" onclick="forgotPassword()">Zabudli ste heslo?</a>
-      <!-- --- KONIEC PRIDANÉHO ODKAZU --- -->
     </div>
-    <!-- Pôvodné odhlasovacie tlačidlo tu už nie je potrebné, presúvame ho do kalkulačky -->
-    <!-- <button onclick="logout()">Odhlásiť sa</button> -->
   </div>
   <div id="calculator-container" class="container" style="display:none;">
     <!-- Calculator UI -->
@@ -144,9 +127,7 @@
       <div><label for="yearSelect">Rok: </label><select id="yearSelect" onchange="changeYear()"></select></div>
       <div><label for="decimalPlacesSelect">Počet desatinných miest: </label><select id="decimalPlacesSelect" onchange="changeDecimalPlaces()"><option value="1">1</option><option value="2">2</option></select></div>
       <button onclick="toggleDarkMode()" class="btn highlight">Prepínať tmavý režim</button>
-      <!-- --- ZAČIATOK PRIDANÉHO TLAČIDLA --- -->
-      <button id="logout-btn" onclick="logout()">Odhlásiť sa</button>
-      <!-- --- KONIEC PRIDANÉHO TLAČIDLA --- -->
+      <!-- Tlačidlo Odhlásiť sa bolo ODSTRÁNENÉ z tohto miesta -->
     </div>
     <div class="table-container">
       <table>
@@ -165,6 +146,9 @@
       <button class="btn export-btn" onclick="sendPDF()">Odoslať</button>
       <button class="btn restore-btn" onclick="restoreBackup()">Obnoviť zálohu</button>
       <button class="btn backup-btn" onclick="createBackup()">Vytvoriť zálohu</button>
+      <!-- --- ZAČIATOK PRIDANÉHO TLAČIDLA --- -->
+      <button id="logout-btn" class="btn reset-btn" onclick="logout()">Odhlásiť sa</button> <!-- Použije štýl reset tlačidla -->
+      <!-- --- KONIEC PRIDANÉHO TLAČIDLA --- -->
     </div>
   </div>
   <div id="saveNotification"></div>
@@ -210,7 +194,7 @@
     }
     // --- KONIEC PRIDANEJ FUNKCIE ---
 
-    // 5. Auth State Change Listener - Nezmenené (ponechávam tvoju poslednú verziu)
+    // 5. Auth State Change Listener - Nezmenené
     auth.onAuthStateChanged(user => {
         console.log("onAuthStateChanged: Stav zistený.", user ? `Používateľ: ${user.email}` : "Žiadny používateľ.");
         const authContainer = document.getElementById('auth-container');
@@ -332,7 +316,7 @@
     function createBackup() { try { const backupData = { workDaysData: localStorage.getItem('workDaysData') || '{}', hourlyWage: localStorage.getItem('hourlyWage') || JSON.stringify(10), taxRate: localStorage.getItem('taxRate') || JSON.stringify(2), darkMode: localStorage.getItem('darkMode') || JSON.stringify(false), decimalPlaces: localStorage.getItem('decimalPlaces') || JSON.stringify(1), employeeName: localStorage.getItem('employeeName') || JSON.stringify(''), backupVersion: 2, backupTimestamp: new Date().toISOString() }; const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `bruno-calculator-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showSaveNotification("Záloha úspešne vytvorená."); } catch (error) { console.error("Chyba pri vytváraní zálohy:", error); alert("Nastala chyba pri vytváraní záložného súboru."); } }
     function restoreBackup() { const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = '.json,application/json'; fileInput.onchange = (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const backup = JSON.parse(e.target.result); if (backup && typeof backup.workDaysData === 'string' && typeof backup.hourlyWage === 'string' && typeof backup.taxRate === 'string' && typeof backup.darkMode === 'string' && typeof backup.decimalPlaces === 'string' && typeof backup.employeeName === 'string') { localStorage.setItem('workDaysData', backup.workDaysData); localStorage.setItem('hourlyWage', backup.hourlyWage); localStorage.setItem('taxRate', backup.taxRate); localStorage.setItem('darkMode', backup.darkMode); localStorage.setItem('decimalPlaces', backup.decimalPlaces); localStorage.setItem('employeeName', backup.employeeName); loadFromLocalStorage(); showSaveNotification("Záloha úspešne obnovená."); alert("Záloha bola úspešne obnovená. Dáta boli načítané."); if (auth.currentUser) { console.log("Obnova zálohy: Ukladám obnovené dáta pre aktuálny mesiac do Firebase..."); debouncedProcessInputCompletion('restore-backup', null); } } else { alert("Chyba: Súbor zálohy má nesprávny formát alebo chýbajú dáta."); } } catch (error) { console.error("Chyba pri spracovaní alebo obnove zálohy:", error); alert("Chyba pri čítaní alebo obnove zálohy. Súbor môže byť poškodený alebo mať nesprávny formát."); } }; reader.onerror = (e) => { console.error("Chyba pri čítaní súboru zálohy:", e); alert("Nastala chyba pri čítaní súboru zálohy."); }; reader.readAsText(file); }; fileInput.click(); }
 
-    // 18) Inicializácia - Nezmenené (ponechávam tvoju poslednú verziu)
+    // 18) Inicializácia - Nezmenené
      document.addEventListener('DOMContentLoaded', () => {
          console.log("DOM načítaný, inicializujem...");
          populateYearSelect(); // Naplní select rokmi
