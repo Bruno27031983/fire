@@ -157,7 +157,8 @@
                    const netInput = document.getElementById(`net-${currentYear}-${currentMonth}-${dayIndex}`);
                    const grossValue = parseFloat(grossInput?.value) || 0;
                    const netValue = parseFloat(netInput?.value) || 0;
-                   if (grossValue > 0 || netValue > 0 || workedMinutesForRow > 0) {
+                   // Započítaj deň ak má zadaný čas alebo ak má nejakú mzdu/odpracovaný čas (pre prípad ručného zadania)
+                   if (startTimeStr && endTimeStr && workedMinutesForRow >= 0) {
                        daysWithEntries++;
                    }
               }
@@ -188,7 +189,7 @@
 
 
     // -----------------------
-    // 7) Export do PDF (s opravenou kontrolou)
+    // 7) Export do PDF (s opravenou kontrolou) - NEDOTKNUTÁ
     // -----------------------
     function exportToPDF() {
       console.log("exportToPDF: Spustené...");
@@ -207,6 +208,8 @@
           const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`; doc.save(pdfFileName); console.log(`exportToPDF: PDF súbor "${pdfFileName}" by mal byť stiahnutý.`); showSaveNotification("PDF exportované.");
       } catch (error) { console.error("Chyba pri generovaní PDF v exportToPDF:", error); alert("Nastala chyba pri vytváraní PDF súboru."); }
     }
+
+    // --- UPRAVENÁ FUNKCIA sendPDF ---
     function sendPDF() {
       console.log("sendPDF: Spustené...");
       if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
@@ -216,15 +219,109 @@
        try {
            const doc = new jsPDF();
            try { doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal'); doc.setFont('Roboto'); } catch(e) { console.warn("sendPDF: Could not load Roboto font, using default.", e); }
-           doc.setFontSize(18); doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20); doc.setFontSize(12); doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28); doc.text(`Hodinová mzda: ${hourlyWage || 'N/A'} €`, 14, 34); doc.text(`Daň (%): ${taxRate*100 || 'N/A'}`, 100, 34);
-           const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Odpracované", "Hrubá Mzda (€)", "Čistá Mzda (€)"]; const tableRows = []; const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || []; console.log(`sendPDF: Počet záznamov pre ${currentYear}-${currentMonth} v monthData: ${dataForCurrentMonth.length}`);
-           dataForCurrentMonth.forEach((day, index) => { if (day.start || day.end) { const dayNum = index + 1; const dayName = getDayName(currentYear, currentMonth, dayNum); const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${dayNum}`); const grossInput = document.getElementById(`gross-${currentYear}-${currentMonth}-${dayNum}`); const netInput = document.getElementById(`net-${currentYear}-${currentMonth}-${dayNum}`); const workedTimeText = totalCell ? totalCell.textContent : 'N/A'; const grossValue = grossInput ? grossInput.value : '0.00'; const netValue = netInput ? netInput.value : '0.00'; const rowData = [ `Deň ${dayNum} (${dayName})`, day.start || '-', day.end || '-', day.breakTime || '0', workedTimeText, grossValue, netValue ]; tableRows.push(rowData); } }); console.log("sendPDF: Dáta pre tabuľku pripravené:", tableRows);
-           doc.autoTable({ head: [tableColumn], body: tableRows, startY: 40, headStyles: { fillColor: [41, 128, 185], textColor: 255, font: doc.getFont().fontName }, styles: { font: doc.getFont().fontName, fontSize: 9 }, alternateRowStyles: { fillColor: [240, 240, 240] } });
-           const finalY = doc.lastAutoTable.finalY || 40; doc.setFontSize(10); const totalTextContent = totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?strong>/g, ''); doc.text(totalTextContent, 14, finalY + 10);
-           const pdfBlob = doc.output('blob'); const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`; const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' }); console.log(`sendPDF: PDF file "${pdfFileName}" vytvorený ako Blob.`);
-           if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) { console.log("sendPDF: Web Share API je dostupné, pokúšam sa zdieľať."); navigator.share({ files: [pdfFile], title: `Pracovný výkaz ${getMonthName(currentMonth)} ${currentYear}`, text: `Výkaz pre ${employeeName || 'pracovníka'} za ${getMonthName(currentMonth)} ${currentYear}.` }).then(() => { console.log('sendPDF: PDF úspešne zdieľané cez Web Share API.'); showSaveNotification("PDF pripravené na zdieľanie."); }).catch((error) => { if (error.name !== 'AbortError') { console.error('sendPDF: Chyba pri zdieľaní cez Web Share API:', error); alert('Chyba pri zdieľaní súboru.'); } else { console.log('sendPDF: Zdieľanie PDF zrušené používateľom.'); } }); } else { console.log("sendPDF: Web Share API nie je podporované alebo nemôže zdieľať súbory, sťahujem PDF."); alert("Zdieľanie súborov nie je podporované vaším prehliadačom alebo systémom. Súbor bude stiahnutý."); const url = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = pdfFileName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a); console.log(`sendPDF: PDF súbor "${pdfFileName}" stiahnutý (fallback).`); }
-       } catch (error) { console.error("Chyba pri generovaní alebo zdieľaní PDF v sendPDF:", error); alert("Nastala chyba pri vytváraní alebo zdieľaní PDF súboru."); }
+
+           // ---> ZAČIATOK ÚPRAV V sendPDF
+
+           // 1. Hlavička PDF (Iba Meno a Mesiac/Rok)
+           doc.setFontSize(16); doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
+           doc.setFontSize(12); doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
+           // Hodinová mzda a daň sú vynechané
+
+           // 2. Stĺpce tabuľky (Iba Deň, Príchod, Odchod, Prestávka)
+           const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)"];
+           const tableRows = [];
+
+           // 3. Dáta pre riadky tabuľky (Iba Deň, Príchod, Odchod, Prestávka)
+           const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+           console.log(`sendPDF: Počet záznamov pre ${currentYear}-${currentMonth} v monthData: ${dataForCurrentMonth.length}`);
+           dataForCurrentMonth.forEach((day, index) => {
+               // Zobrazíme riadok iba ak má zadaný príchod alebo odchod
+               if (day.start || day.end) {
+                   const dayNum = index + 1;
+                   const dayName = getDayName(currentYear, currentMonth, dayNum);
+                   // Odpracovaný čas, hrubá a čistá mzda sú vynechané
+                   const rowData = [
+                       `Deň ${dayNum} (${dayName})`, // Deň
+                       day.start || '-',              // Príchod
+                       day.end || '-',                // Odchod
+                       day.breakTime || '0'           // Prestávka
+                   ];
+                   tableRows.push(rowData);
+               }
+           });
+           console.log("sendPDF: Dáta pre zjednodušenú tabuľku pripravené:", tableRows);
+
+           // 4. Vykreslenie tabuľky
+           doc.autoTable({
+               head: [tableColumn],
+               body: tableRows,
+               startY: 35, // Posunuté vyššie, lebo je menej textu v hlavičke
+               headStyles: { fillColor: [41, 128, 185], textColor: 255, font: doc.getFont().fontName },
+               styles: { font: doc.getFont().fontName, fontSize: 9 },
+               alternateRowStyles: { fillColor: [240, 240, 240] }
+           });
+
+           // 5. Súhrn pod tabuľkou (Iba počet odpracovaných dní)
+           const finalY = doc.lastAutoTable.finalY || 35;
+           doc.setFontSize(10);
+
+           // Získanie počtu odpracovaných dní z existujúceho HTML elementu
+           const totalSalaryHTML = totalSalaryDiv.innerHTML;
+           let daysWithEntriesText = 'N/A'; // Default hodnota pre prípad, že by sa nepodarilo extrahovať
+           const match = totalSalaryHTML.match(/Počet odpracovaných dní: (\d+)/);
+           if (match && match[1]) {
+               daysWithEntriesText = match[1];
+           }
+           const summaryText = `Počet odpracovaných dní: ${daysWithEntriesText}`;
+           doc.text(summaryText, 14, finalY + 10);
+
+           // ---> KONIEC ÚPRAV V sendPDF
+
+           // 6. Generovanie a zdieľanie PDF (zostáva rovnaké)
+           const pdfBlob = doc.output('blob');
+           const pdfFileName = `Vykaz_odoslanie-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`; // Mierne upravený názov pre rozlíšenie
+           const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
+           console.log(`sendPDF: PDF file "${pdfFileName}" vytvorený ako Blob.`);
+
+           if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+               console.log("sendPDF: Web Share API je dostupné, pokúšam sa zdieľať.");
+               navigator.share({
+                   files: [pdfFile],
+                   title: `Pracovný výkaz ${getMonthName(currentMonth)} ${currentYear}`,
+                   text: `Výkaz pre ${employeeName || 'pracovníka'} za ${getMonthName(currentMonth)} ${currentYear}.`
+               })
+               .then(() => {
+                   console.log('sendPDF: PDF úspešne zdieľané cez Web Share API.');
+                   showSaveNotification("PDF pripravené na zdieľanie.");
+               })
+               .catch((error) => {
+                   if (error.name !== 'AbortError') {
+                       console.error('sendPDF: Chyba pri zdieľaní cez Web Share API:', error);
+                       alert('Chyba pri zdieľaní súboru.');
+                   } else {
+                       console.log('sendPDF: Zdieľanie PDF zrušené používateľom.');
+                   }
+               });
+           } else {
+               console.log("sendPDF: Web Share API nie je podporované alebo nemôže zdieľať súbory, sťahujem PDF.");
+               alert("Zdieľanie súborov nie je podporované vaším prehliadačom alebo systémom. Súbor bude stiahnutý.");
+               const url = URL.createObjectURL(pdfBlob);
+               const a = document.createElement('a');
+               a.style.display = 'none';
+               a.href = url;
+               a.download = pdfFileName;
+               document.body.appendChild(a);
+               a.click();
+               window.URL.revokeObjectURL(url);
+               document.body.removeChild(a);
+               console.log(`sendPDF: PDF súbor "${pdfFileName}" stiahnutý (fallback).`);
+           }
+       } catch (error) {
+           console.error("Chyba pri generovaní alebo zdieľaní PDF v sendPDF:", error);
+           alert("Nastala chyba pri vytváraní alebo zdieľaní PDF súboru.");
+       }
     }
+    // --- KONIEC UPRAVENEJ FUNKCIE sendPDF ---
 
     // -----------------------
     // 8) Ostatné nastavenia (zostávajú rovnaké)
