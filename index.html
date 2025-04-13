@@ -115,8 +115,8 @@
 
     // 3. Globálne premenné
     let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate;
-    let monthData = {}; // Lokálna reprezentácia dát pre všetky mesiace/roky
-    let firestoreListenerUnsubscribe = null; // Funkcia na odhlásenie aktuálneho listenera
+    let monthData = {};
+    let firestoreListenerUnsubscribe = null;
 
     const workDays = document.getElementById('workDays');
     const totalSalaryDiv = document.getElementById('totalSalary');
@@ -136,7 +136,7 @@
     function login() { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password) .then((userCredential) => { console.log("Prihlásený:", userCredential.user); alert("Prihlásenie úspešné!"); }) .catch((error) => { console.error("Chyba pri prihlásení:", error.message); alert("Chyba pri prihlásení: " + error.message); }); }
     function logout() { auth.signOut() .then(() => { console.log("Odhlásený."); alert("Odhlásenie úspešné!"); }) .catch((error) => { console.error("Chyba pri odhlásení:", error.message); alert("Chyba pri odhlásení: " + error.message); }); }
 
-    // 5. Auth State Change Listener (OPRAVENÁ - len .exists())
+    // 5. Auth State Change Listener (OPRAVENÉ - userDocSnap.exists())
     auth.onAuthStateChanged(user => {
         const authContainer = document.getElementById('auth-container');
         const calculatorContainer = document.getElementById('calculator-container');
@@ -188,18 +188,16 @@
             const uid = user.uid;
             const userDocRef = db.collection("users").doc(uid);
             userDocRef.get().then(userDocSnap => {
-                // --- ZAČIATOK OPRAVY ---
-                // Použi metódu exists() so zátvorkami
-                if (!userDocSnap.exists()) {
-                // --- KONIEC OPRAVY ---
+                // =============================
+                // === TU JE DÔLEŽITÁ OPRAVA ===
+                // =============================
+                if (!userDocSnap.exists()) { // MUSIA TU BYŤ ZÁTVORKY ()
                     userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true })
                     .then(() => console.log("Vytvorený/aktualizovaný dokument pre:", uid))
                     .catch(err => console.error("Chyba pri vytváraní/aktualizácii dokumentu používateľa:", err));
                 }
             }).catch(err => {
-                 // Vypísanie chyby do konzoly
                  console.error("Chyba pri kontrole dokumentu používateľa:", err);
-                 // Môžeš pridať aj notifikáciu pre používateľa
                  showSaveNotification("Chyba pri overovaní používateľských dát", "error");
             });
 
@@ -218,7 +216,7 @@
     function debounce(func, wait) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), wait); }; }
     function showSaveNotification(message, type = 'success') { const notification = document.getElementById('saveNotification'); notification.textContent = message; notification.className = 'show'; if (type === 'error') { notification.classList.add('error'); } else if (type === 'warning') { notification.classList.add('warning'); } notification.classList.add('show'); setTimeout(() => notification.classList.remove('show'), 3000); }
 
-    // 7. Funkcia na nastavenie Firestore Listenera (Nezmenená oproti predchádzajúcej oprave)
+    // 7. Funkcia na nastavenie Firestore Listenera (OPRAVENÉ - docSnap.exists())
     function setupFirestoreListener() {
         if (firestoreListenerUnsubscribe) {
             console.log("Odhlasujem predchádzajúci Firestore listener.");
@@ -245,9 +243,12 @@
 
         firestoreListenerUnsubscribe = docRef.onSnapshot((docSnap) => {
             console.log(`Firestore listener: Prijatý objekt docSnap pre ${docPath}:`, docSnap);
-             console.log(`Firestore listener: Metadata:`, docSnap.metadata);
+            console.log(`Firestore listener: Metadata:`, docSnap.metadata);
 
-            if (docSnap.exists()) { // Použitie .exists()
+            // =============================
+            // === TU JE DÔLEŽITÁ OPRAVA ===
+            // =============================
+            if (docSnap.exists()) { // MUSIA TU BYŤ ZÁTVORKY ()
                 const data = docSnap.data();
                  console.log(`Listener: Dokument existuje, načítané dáta z Firestore:`, data);
 
@@ -608,7 +609,7 @@
     function updateDataSize() { try { const totalData = Object.values(localStorage).reduce((acc, value) => acc + (value ? value.length : 0), 0); const kilobytes = (totalData / 1024).toFixed(2); const percentageUsed = Math.min(((totalData / MAX_DATA_SIZE) * 100), 100); dataSizeText.textContent = `Lokálne úložisko: ~${kilobytes} KB / ${MAX_DATA_SIZE_KB} KB`; dataSizeFill.style.width = `${percentageUsed}%`; if (percentageUsed > 90) { dataSizeFill.style.backgroundColor = '#f44336'; } else if (percentageUsed > 70) { dataSizeFill.style.backgroundColor = '#ff9800'; } else { dataSizeFill.style.backgroundColor = '#4CAF50'; } } catch (error) { console.error("Chyba pri výpočte veľkosti localStorage:", error); dataSizeText.textContent = "Chyba pri výpočte veľkosti dát."; } }
     function toggleDarkMode() { const isDarkMode = document.body.classList.toggle('dark-mode'); applyDarkMode(isDarkMode); localStorage.setItem('darkMode', JSON.stringify(isDarkMode)); if (auth.currentUser) { saveToFirebase(); } }
 
-    // 17) Zálohovanie a obnova (Nezmenené oproti predchádzajúcej oprave)
+    // 17) Zálohovanie a obnova (Nezmenené)
     function createBackup() { try { const backupData = { workDaysData: localStorage.getItem('workDaysData') || '{}', hourlyWage: localStorage.getItem('hourlyWage') || JSON.stringify(10), taxRate: localStorage.getItem('taxRate') || JSON.stringify(2), darkMode: localStorage.getItem('darkMode') || JSON.stringify(false), decimalPlaces: localStorage.getItem('decimalPlaces') || JSON.stringify(1), employeeName: localStorage.getItem('employeeName') || JSON.stringify(''), backupVersion: 2, backupTimestamp: new Date().toISOString() }; const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `bruno-calculator-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showSaveNotification("Záloha úspešne vytvorená."); } catch (error) { console.error("Chyba pri vytváraní zálohy:", error); alert("Nastala chyba pri vytváraní záložného súboru."); } }
     function restoreBackup() {
         const fileInput = document.createElement('input');
