@@ -104,12 +104,12 @@
           console.log("Firestore offline persistence povolená.");
       })
       .catch((err) => {
+          // Logovanie chyby persistence podrobnejšie
+          console.error("Firestore offline persistence chyba:", err.code, err.message, err);
           if (err.code == 'failed-precondition') {
               console.warn("Firestore offline persistence: Viacnásobné otvorené taby, povolené len v jednom.");
           } else if (err.code == 'unimplemented') {
               console.error("Firestore offline persistence: Prehliadač nie je podporovaný.");
-          } else {
-              console.error("Firestore offline persistence chyba:", err);
           }
       });
 
@@ -136,7 +136,7 @@
     function login() { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password) .then((userCredential) => { console.log("Prihlásený:", userCredential.user); alert("Prihlásenie úspešné!"); }) .catch((error) => { console.error("Chyba pri prihlásení:", error.message); alert("Chyba pri prihlásení: " + error.message); }); }
     function logout() { auth.signOut() .then(() => { console.log("Odhlásený."); alert("Odhlásenie úspešné!"); }) .catch((error) => { console.error("Chyba pri odhlásení:", error.message); alert("Chyba pri odhlásení: " + error.message); }); }
 
-    // 5. Auth State Change Listener (OPRAVENÉ - userDocSnap.exists())
+    // 5. Auth State Change Listener (OPRAVENÉ - späť na userDocSnap.exists)
     auth.onAuthStateChanged(user => {
         const authContainer = document.getElementById('auth-container');
         const calculatorContainer = document.getElementById('calculator-container');
@@ -188,16 +188,18 @@
             const uid = user.uid;
             const userDocRef = db.collection("users").doc(uid);
             userDocRef.get().then(userDocSnap => {
-                // =============================
-                // === TU JE DÔLEŽITÁ OPRAVA ===
-                // =============================
-                if (!userDocSnap.exists()) { // MUSIA TU BYŤ ZÁTVORKY ()
+                // ===============================================
+                // === SPRÁVNA SYNTAX PRE COMPAT JE .exists ===
+                // ===============================================
+                if (!userDocSnap.exists) { // BEZ ZÁTVORIEK
                     userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true })
                     .then(() => console.log("Vytvorený/aktualizovaný dokument pre:", uid))
                     .catch(err => console.error("Chyba pri vytváraní/aktualizácii dokumentu používateľa:", err));
+                } else {
+                    console.log("Dokument používateľa existuje:", uid);
                 }
             }).catch(err => {
-                 console.error("Chyba pri kontrole dokumentu používateľa:", err);
+                 console.error("Chyba pri kontrole dokumentu používateľa (userDocRef.get):", err);
                  showSaveNotification("Chyba pri overovaní používateľských dát", "error");
             });
 
@@ -216,7 +218,7 @@
     function debounce(func, wait) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), wait); }; }
     function showSaveNotification(message, type = 'success') { const notification = document.getElementById('saveNotification'); notification.textContent = message; notification.className = 'show'; if (type === 'error') { notification.classList.add('error'); } else if (type === 'warning') { notification.classList.add('warning'); } notification.classList.add('show'); setTimeout(() => notification.classList.remove('show'), 3000); }
 
-    // 7. Funkcia na nastavenie Firestore Listenera (OPRAVENÉ - docSnap.exists())
+    // 7. Funkcia na nastavenie Firestore Listenera (OPRAVENÉ - späť na docSnap.exists)
     function setupFirestoreListener() {
         if (firestoreListenerUnsubscribe) {
             console.log("Odhlasujem predchádzajúci Firestore listener.");
@@ -245,10 +247,10 @@
             console.log(`Firestore listener: Prijatý objekt docSnap pre ${docPath}:`, docSnap);
             console.log(`Firestore listener: Metadata:`, docSnap.metadata);
 
-            // =============================
-            // === TU JE DÔLEŽITÁ OPRAVA ===
-            // =============================
-            if (docSnap.exists()) { // MUSIA TU BYŤ ZÁTVORKY ()
+            // ===============================================
+            // === SPRÁVNA SYNTAX PRE COMPAT JE .exists ===
+            // ===============================================
+            if (docSnap.exists) { // BEZ ZÁTVORIEK
                 const data = docSnap.data();
                  console.log(`Listener: Dokument existuje, načítané dáta z Firestore:`, data);
 
@@ -309,6 +311,8 @@
             loadFromLocalStorage();
         });
     }
+
+    // --- Zvyšok kódu (funkcie 8 až 18) zostáva nezmenený oproti predchádzajúcej verzii ---
 
     // 8. Funkcia na ukladanie do Firebase (Nezmenená)
     async function saveToFirebase() {
