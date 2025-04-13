@@ -139,49 +139,57 @@
     // Nová debouncovaná funkcia pre dokončenie akcií po inpute
     function processInputCompletion(inputId, nextId) {
         console.log(`processInputCompletion: Spustené pre ${inputId}, ďalší: ${nextId}`);
-        calculateTotal(); // Prepočíta súčty
-        saveToLocalStorage(); // Uloží dáta
-
-        // Skúsime presunúť fokus, ak je vstup kompletný
         const inputElement = document.getElementById(inputId);
-        if (!inputElement) return;
+        if (!inputElement) {
+            console.warn(`processInputCompletion: Element ${inputId} nenájdený.`);
+            // Aj tak prepočítame a uložíme, ak bola zmena (napr. reset)
+            calculateTotal();
+            saveToLocalStorage();
+            return;
+        }
 
-        if (inputElement.type === 'tel') { // Časové pole
+        // 1. Formátovanie až teraz, po pauze
+        formatInput(inputElement); // Formátuje hodnotu v UI
+
+        // 2. Aktualizácia monthData z (teraz už sformátovanej) hodnoty v UI
+        const day = parseInt(inputId.split('-').pop()); // Potrebujeme deň pre updateMonthData
+        if (!isNaN(day)) {
+             updateMonthDataFromInput(inputElement, day); // Aktualizuje monthData sformátovanou hodnotou
+        } else if (inputId === 'reset-all' || inputId.startsWith('reset-') || inputId === 'settings-change' || inputId === 'restore-backup') {
+             // Pre tieto akcie už monthData bolo aktualizované predtým
+             console.log("processInputCompletion: Akcia nevyžaduje update monthData tu:", inputId);
+        } else {
+            console.warn("processInputCompletion: Nepodarilo sa získať deň z ID:", inputId);
+        }
+
+        // 3. Prepočet súčtov
+        calculateTotal();
+
+        // 4. Uloženie
+        saveToLocalStorage();
+
+        // 5. Presun fokusu (ak je relevantné a vstup validný)
+        if (inputElement.type === 'tel') {
             if (inputElement.value.length === 5 && isTimeValid(inputElement.value)) {
                 moveNext(inputElement, nextId);
             }
-        } else if (inputElement.type === 'number' && inputId.startsWith('break-')) { // Pole prestávky
-             // Pre prestávku presunieme fokus vždy, keď sa debounce dokončí
-             // (Predpokladáme, že používateľ zadal číslo a prestal písať)
-             const day = parseInt(inputId.split('-').pop()); // Získame číslo dňa z ID
-             const nextDay = day + 1;
-             if (nextDay <= getDaysInMonth(currentMonth)) {
-                 const nextInputElementId = `start-${currentYear}-${currentMonth}-${nextDay}`;
-                 moveNext(inputElement, nextInputElementId);
-             }
+        } else if (inputElement.type === 'number' && inputId.startsWith('break-')) {
+            // Presun z prestávky (teraz sa nextId posiela správne z handleBreakInput)
+             moveNext(inputElement, nextId);
         }
     }
-    const debouncedProcessInputCompletion = debounce(processInputCompletion, 850); // Rovnaký debounce ako predtým
+    const debouncedProcessInputCompletion = debounce(processInputCompletion, 850); // Debounce čas
 
-    // Pomocná funkcia na validáciu času (používa sa v debounced funkcii)
-    function isTimeValid(timeStr) {
-        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        if (!timeRegex.test(timeStr)) return false;
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        // Kontrola je už v regex, ale pre istotu
-        if (isNaN(hours) || hours < 0 || hours > 23 || isNaN(minutes) || minutes < 0 || minutes > 59) return false;
-        return true;
-    }
+    // Pomocná funkcia na validáciu času
+    function isTimeValid(timeStr) { const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; return timeRegex.test(timeStr); }
 
 
     function handleInput(input, nextId, day) {
-        // 1. Okamžite aktualizuj monthData
+        // 1. Okamžite aktualizuj monthData z AKTUÁLNEJ hodnoty
         updateMonthDataFromInput(input, day);
-        // 2. Okamžite formátuj (bez presunu fokusu)
-        formatInput(input);
-        // 3. Okamžite prepočítaj riadok
+        // 2. Okamžite prepočítaj riadok (aby používateľ videl zmenu)
         calculateRow(day);
-        // 4. Spusti debouncovanú funkciu pre súčty, ukladanie a presun fokusu
+        // 3. Spusti debouncovanú funkciu, ktorá sformátuje, uloží a presunie fokus
         debouncedProcessInputCompletion(input.id, nextId);
     }
 
@@ -197,11 +205,11 @@
         if (nextDay <= getDaysInMonth(currentMonth)) {
             nextInputElementId = `start-${currentYear}-${currentMonth}-${nextDay}`;
         }
-        // 4. Spusti debouncovanú funkciu pre súčty, ukladanie a presun fokusu
+        // 4. Spusti debouncovanú funkciu pre formátovanie, súčty, ukladanie a presun fokusu
         debouncedProcessInputCompletion(input.id, nextInputElementId);
     }
 
-    // Funkcia na aktualizáciu monthData z inputu (z predchádzajúcej verzie)
+    // Funkcia na aktualizáciu monthData z inputu
     function updateMonthDataFromInput(input, day) {
         if (!input) return;
         const dayIndex = day - 1;
@@ -210,7 +218,7 @@
         if (fieldId.startsWith('start-')) field = 'start';
         else if (fieldId.startsWith('end-')) field = 'end';
         else if (fieldId.startsWith('break-')) field = 'breakTime';
-        const value = input.value;
+        const value = input.value; // Čítame aktuálnu hodnotu z inputu
 
         if (field !== 'unknown') {
             if (!monthData) monthData = {};
@@ -220,7 +228,7 @@
                 monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '' });
             }
             if (monthData[currentYear][currentMonth][dayIndex]) {
-                 monthData[currentYear][currentMonth][dayIndex][field] = value;
+                 monthData[currentYear][currentMonth][dayIndex][field] = value; // Uložíme presne to, čo je v inpute
             } else {
                 console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData.`);
                 monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', [field]: value };
@@ -231,33 +239,49 @@
     }
 
 
-    // Funkcia formátuje časový vstup, NEPRESÚVA FOKUS
+    // Funkcia formátuje časový vstup, volá sa až z debounced funkcie
     function formatInput(input) {
-        if(input.type === 'tel') {
-            let value = input.value.replace(/[^\d:]/g, '');
-            if (value.length === 3 && value.charAt(2) !== ':') { value = value.slice(0, 2) + ':' + value.slice(2); }
-            else if (value.length === 4 && !value.includes(':')) { value = value.slice(0, 2) + ':' + value.slice(2); }
-            if (value.length > 5) { value = value.slice(0, 5); }
-            input.value = value;
+        if (!input || input.type !== 'tel') return; // Kontrola, či element existuje a je správneho typu
 
-            // Validácia (len zmena borderu)
-             if (value.length === 5) {
-                 if (isTimeValid(value)) {
-                     input.style.border = ''; // OK
-                 } else { input.style.border = '1px solid red'; setTimeout(() => { input.style.border = ''; }, 2000); }
-             } else { input.style.border = ''; }
+        let value = input.value.replace(/[^\d:]/g, ''); // Ponechá len čísla a dvojbodky
+        // Skúsime pridať dvojbodku, ak chýba a formát sedí
+        if (value.length === 4 && !value.includes(':')) {
+            value = value.slice(0, 2) + ':' + value.slice(2);
+        } else if (value.length === 3 && value.charAt(2) !== ':' && parseInt(value.slice(0, 2)) <= 23) {
+             // Pridá dvojbodku len ak prvé 2 číslice sú platné hodiny
+             value = value.slice(0, 2) + ':' + value.slice(2);
         }
+
+        if (value.length > 5) { value = value.slice(0, 5); } // Obmedzenie dĺžky
+
+        // Zapíšeme sformátovanú hodnotu späť do inputu
+        input.value = value;
+
+        // Validácia borderu
+         if (value.length > 0 && value.length < 5) {
+              input.style.border = ''; // Počas písania je ok
+         } else if (value.length === 5) {
+              if (isTimeValid(value)) {
+                  input.style.border = ''; // OK
+              } else { input.style.border = '1px solid red'; setTimeout(() => { input.style.border = ''; }, 2000); }
+         } else { input.style.border = ''; } // Prázdne pole je tiež ok
     }
 
-    // Funkcia moveNext - volaná až z debouncedProcessInputCompletion
+    // Funkcia moveNext - volaná až z debounced funkcie
     function moveNext(currentElement, nextId) {
-        if (!nextId) return; // Ak nie je kam skočiť (napr. posledný break)
+        if (!nextId || !currentElement) return;
         const nextElement = document.getElementById(nextId);
         if (nextElement) {
-            console.log(`moveNext: Presúvam fokus z ${currentElement?.id} na ${nextId}`);
-            nextElement.focus();
-            if (nextElement.select) {
-                nextElement.select();
+            // Presúvame fokus, len ak aktuálny element stále má fokus
+            // (aby sme nepresunuli fokus, ak užívateľ klikol inde medzitým)
+            if (document.activeElement === currentElement) {
+                console.log(`moveNext: Presúvam fokus z ${currentElement.id} na ${nextId}`);
+                nextElement.focus();
+                if (nextElement.select) {
+                    nextElement.select();
+                }
+            } else {
+                 console.log(`moveNext: Aktuálny element ${currentElement.id} už nemá fokus, presun preskočený.`);
             }
         } else {
             console.warn(`moveNext: Element s ID ${nextId} nebol nájdený.`);
@@ -268,15 +292,8 @@
     function calculateRow(day) { const startTimeStr = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`)?.value; const endTimeStr = document.getElementById(`end-${currentYear}-${currentMonth}-${day}`)?.value; const breakTimeInput = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); const breakTime = parseFloat(breakTimeInput?.value) || 0; const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); const grossElement = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`); const netElement = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`); if (!totalCell || !grossElement || !netElement) { return; } if (!startTimeStr || !endTimeStr) { totalCell.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; grossElement.value = '0.00'; netElement.value = '0.00'; return; } const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; if (!timeRegex.test(startTimeStr) || !timeRegex.test(endTimeStr)) { totalCell.textContent = 'Neplatný čas'; grossElement.value = '0.00'; netElement.value = '0.00'; return; } const [startHours, startMinutes] = startTimeStr.split(':').map(Number); const [endHours, endMinutes] = endTimeStr.split(':').map(Number); const startTotalMinutes = startHours * 60 + startMinutes; let endTotalMinutes = endHours * 60 + endMinutes; if (endTotalMinutes < startTotalMinutes) { endTotalMinutes += 24 * 60; } const diffMinutes = endTotalMinutes - startTotalMinutes; const breakMinutes = breakTime * 60; const workedMinutes = Math.max(0, diffMinutes - breakMinutes); const hours = Math.floor(workedMinutes / 60); const minutes = Math.round(workedMinutes % 60); const decimalHours = (workedMinutes / 60); totalCell.textContent = `${hours}h ${minutes}m (${decimalHours.toFixed(decimalPlaces || 1)} h)`; const currentHourlyWage = hourlyWage; const currentTaxRate = taxRate; const grossSalary = decimalHours * currentHourlyWage; grossElement.value = isFinite(grossSalary) ? grossSalary.toFixed(2) : '0.00'; const netSalary = grossSalary * (1 - currentTaxRate); netElement.value = isFinite(netSalary) ? netSalary.toFixed(2) : '0.00'; }
 
     // Funkcie resetRow a resetAll (UPRAVENÉ - volajú debouncedProcessInputCompletion)
-    function resetRow(day) { const dayIndex = day - 1; const start = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`); const end = document.getElementById(`end-${currentYear}-${currentMonth}-${day}`); const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); const total = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`); const net = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`); if (start && end && breakTime && total && gross && net) { start.value = ''; end.value = ''; breakTime.value = ''; total.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; gross.value = '0.00'; net.value = '0.00'; if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = []; while (monthData[currentYear][currentMonth].length <= dayIndex) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '' }); } if (monthData[currentYear][currentMonth][dayIndex]) { monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '' }; } else { console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`); }
-        // Pri resete riadku tiež použijeme debounce pre ukladanie
-        debouncedProcessInputCompletion(`reset-${day}`, null); // Fiktívne ID, len aby sa spustil debounce
-     } }
-    function resetAll() { if (confirm('Naozaj chcete resetovať všetky záznamy pre tento mesiac?')) { if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; monthData[currentYear][currentMonth] = []; createTable(); calculateTotal();
-        // Pri resete všetkého použijeme debounce pre ukladanie
-        debouncedProcessInputCompletion(`reset-all`, null); // Fiktívne ID
-        showSaveNotification("Dáta pre aktuálny mesiac boli resetované.");
-    } }
+    function resetRow(day) { const dayIndex = day - 1; const start = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`); const end = document.getElementById(`end-${currentYear}-${currentMonth}-${day}`); const breakTime = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); const total = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); const gross = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`); const net = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`); if (start && end && breakTime && total && gross && net) { start.value = ''; end.value = ''; breakTime.value = ''; total.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; gross.value = '0.00'; net.value = '0.00'; if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = []; while (monthData[currentYear][currentMonth].length <= dayIndex) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '' }); } if (monthData[currentYear][currentMonth][dayIndex]) { monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '' }; } else { console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`); } debouncedProcessInputCompletion(`reset-${day}`, null); } }
+    function resetAll() { if (confirm('Naozaj chcete resetovať všetky záznamy pre tento mesiac?')) { if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; monthData[currentYear][currentMonth] = []; createTable(); calculateTotal(); debouncedProcessInputCompletion(`reset-all`, null); showSaveNotification("Dáta pre aktuálny mesiac boli resetované."); } }
     // --- KONIEC ZMIEN PRE INPUT HANDLING A FOCUS ---
 
 
