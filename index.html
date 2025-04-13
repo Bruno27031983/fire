@@ -136,25 +136,33 @@
 
     // --- ZAČIATOK ZMIEN PRE INPUT HANDLING A FOCUS ---
 
-    // Debouncovaná funkcia pre dokončenie akcií po inpute
+    // Debouncovaná funkcia pre dokončenie (už neformátuje)
     function processInputCompletion(inputId, nextId) {
         console.log(`processInputCompletion: Spustené pre ${inputId}, ďalší: ${nextId}`);
-        const inputElement = document.getElementById(inputId);
+        const inputElement = document.getElementById(inputId); // Potrebujeme element pre kontrolu fokusu
+        if (!inputElement && !(inputId === 'reset-all' || inputId.startsWith('reset-') || inputId === 'settings-change' || inputId === 'restore-backup') ) {
+            console.warn(`processInputCompletion: Element ${inputId} nenájdený.`);
+            return; // Ak nevieme nájsť element a nejde o špeciálnu akciu, nerobíme nič
+        }
+
         // 1. Prepočet súčtov
         calculateTotal();
-        // 2. Uloženie
+
+        // 2. Uloženie (monthData by malo byť aktuálne z handleInput/handleBreakInput)
         saveToLocalStorage();
-        // 3. Presun fokusu (ak je relevantné a vstup validný)
+
+        // 3. Presun fokusu (len ak je relevantné a vstup validný)
         if (inputElement && inputElement.type === 'tel') {
+            // Fokus presunieme len ak má pole 5 znakov a je validné
             if (inputElement.value.length === 5 && isTimeValid(inputElement.value)) {
                 moveNext(inputElement, nextId);
             }
         } else if (inputElement && inputElement.type === 'number' && inputId.startsWith('break-')) {
+            // Fokus z prestávky presunieme vždy po debounce (predpokladáme dokončenie)
              moveNext(inputElement, nextId);
         }
     }
-    // --- ZMENA: SKRÁTENÝ DEBOUNCE ČAS ---
-    const debouncedProcessInputCompletion = debounce(processInputCompletion, 500); // Skrátený debounce čas
+    const debouncedProcessInputCompletion = debounce(processInputCompletion,500); // Debounce čas
 
     // Pomocná funkcia na validáciu času
     function isTimeValid(timeStr) { const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; return timeRegex.test(timeStr); }
@@ -186,7 +194,7 @@
         debouncedProcessInputCompletion(input.id, nextInputElementId);
     }
 
-    // Funkcia na aktualizáciu monthData z inputu
+    // Funkcia na aktualizáciu monthData z inputu (zostáva rovnaká)
     function updateMonthDataFromInput(input, day) { if (!input) return; const dayIndex = day - 1; const fieldId = input.id; let field = 'unknown'; if (fieldId.startsWith('start-')) field = 'start'; else if (fieldId.startsWith('end-')) field = 'end'; else if (fieldId.startsWith('break-')) field = 'breakTime'; const value = input.value; if (field !== 'unknown') { if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = []; while (monthData[currentYear][currentMonth].length <= dayIndex) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '' }); } if (monthData[currentYear][currentMonth][dayIndex]) { monthData[currentYear][currentMonth][dayIndex][field] = value; } else { console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData.`); monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', [field]: value }; } } else { console.warn("updateMonthDataFromInput: Nerozpoznané pole pre input ID:", fieldId); } }
 
     // Funkcia formátuje vstup OKAMŽITE, ale NEPRESÚVA FOKUS
@@ -196,13 +204,15 @@
         if (value.length === 4 && !value.includes(':')) { value = value.slice(0, 2) + ':' + value.slice(2); }
         else if (value.length === 3 && value.charAt(2) !== ':' && parseInt(value.slice(0, 2)) <= 23) { value = value.slice(0, 2) + ':' + value.slice(2); }
         if (value.length > 5) { value = value.slice(0, 5); }
-        input.value = value;
-        if (value.length > 0 && value.length < 5) { input.style.border = ''; }
-        else if (value.length === 5) { if (isTimeValid(value)) { input.style.border = ''; } else { input.style.border = '1px solid red'; setTimeout(() => { input.style.border = ''; }, 2000); } }
-        else { input.style.border = ''; }
+        input.value = value; // Zapíšeme sformátovanú hodnotu späť HNEĎ
+
+        // Validácia borderu (zostáva rovnaká)
+         if (value.length > 0 && value.length < 5) { input.style.border = ''; }
+         else if (value.length === 5) { if (isTimeValid(value)) { input.style.border = ''; } else { input.style.border = '1px solid red'; setTimeout(() => { input.style.border = ''; }, 2000); } }
+         else { input.style.border = ''; }
     }
 
-    // Funkcia moveNext - volaná až z debounced funkcie
+    // Funkcia moveNext - volaná až z debounced funkcie (zostáva rovnaká)
     function moveNext(currentElement, nextId) { if (!nextId || !currentElement) return; const nextElement = document.getElementById(nextId); if (nextElement) { if (document.activeElement === currentElement) { console.log(`moveNext: Presúvam fokus z ${currentElement.id} na ${nextId}`); nextElement.focus(); if (nextElement.select) { nextElement.select(); } } else { console.log(`moveNext: Aktuálny element ${currentElement.id} už nemá fokus, presun preskočený.`); } } else { console.warn(`moveNext: Element s ID ${nextId} nebol nájdený.`); } }
 
     // Funkcia calculateRow zostáva nezmenená
