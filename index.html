@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bruno's Calculator s Firebase Auth (Kompletný)</title>
+    <title>Bruno's Calculator s Firebase Auth (Kompletný + Úzky stĺpec)</title>
     <link rel="manifest" href="manifest.json"> <meta name="theme-color" content="#4CAF50">
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
@@ -129,7 +129,7 @@
         }
 
         /* Nastavenia */
-        .settings-toggle-button { /* Štýl pre nové tlačidlo */
+        .settings-toggle-button {
             background: none;
             border: none;
             color: var(--link-color);
@@ -138,7 +138,7 @@
             padding: 5px 0;
             margin-bottom: 10px;
             text-decoration: underline;
-            display: block; /* Aby bolo na samostatnom riadku */
+            display: block;
         }
         .settings-toggle-button:hover {
             opacity: 0.8;
@@ -153,15 +153,15 @@
             gap: 15px;
             align-items: center;
             overflow: hidden;
-            max-height: 500px; /* Dostatočne veľká výška pre zobrazený stav */
+            max-height: 500px;
             transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.4s ease-in-out;
             opacity: 1;
         }
         #collapsible-settings-items.hidden {
              max-height: 0;
              opacity: 0;
-             margin-top: -15px; /* Kompenzuje gap, keď sa skryje */
-             pointer-events: none; /* Zabráni interakcii so skrytými prvkami */
+             margin-top: -15px;
+             pointer-events: none;
         }
 
         #collapsible-settings-items > div {
@@ -173,13 +173,12 @@
              flex-wrap: wrap;
              gap: 15px;
              align-items: center;
-             margin-top: 15px; /* Odsadenie od collapsible časti */
+             margin-top: 15px;
          }
          .settings-controls > div {
              flex: 1 1 200px;
              min-width: 180px;
          }
-
 
         .settings label {
             display: block;
@@ -200,6 +199,7 @@
             min-width: 800px;
             background-color: var(--container-bg);
             transition: background-color 0.3s ease;
+            table-layout: auto; /* Alebo fixed, ak chceme striktnejšie šírky */
         }
 
         th, td {
@@ -214,6 +214,18 @@
             background-color: var(--table-header-bg);
             font-weight: bold;
         }
+
+        /* =====> NOVÉ PRAVIDLO PRE ŠÍRKU PRVÉHO STĹPCA <===== */
+        table th:first-child,
+        table tbody td:first-child {
+            width: 120px; /* Skús túto šírku, môžeš ju upraviť podľa potreby (napr. 110px, 130px) */
+            min-width: 100px; /* Minimálna šírka, aby sa text úplne nestratil */
+            box-sizing: border-box; /* Zahrnie padding a border do šírky */
+            /* Ak by sa text stále zalamoval nechcene, odkomentuj nasledujúci riadok: */
+            /* white-space: nowrap; */
+        }
+        /* =====> KONIEC NOVÉHO PRAVIDLA <===== */
+
 
         /* Aktuálny deň */
         tr.current-day {
@@ -303,7 +315,6 @@
         .restore-btn { background-color: var(--info-color); } .restore-btn:hover { background-color: var(--info-darker); }
         .backup-btn { background-color: var(--warning-color); } .backup-btn:hover { background-color: var(--warning-darker); }
 
-        /* Tlačidlo pre tmavý režim v nastaveniach */
         .settings-controls .btn.highlight {
             background-color: var(--secondary-color);
             color: white;
@@ -799,13 +810,11 @@
                         monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
                             start: day.start || '', end: day.end || '', breakTime: day.breakTime || ''
                         }));
-                        // Uloženie do localStorage pri lokálnom zápise? Zvážiť.
-                        // localStorage.setItem('workDaysData', JSON.stringify(monthData));
                     }
                     return;
                 }
 
-                if (docSnap.exists) {
+                if (docSnap.exists()) {
                     const data = docSnap.data();
                     console.log(`Listener: Dokument existuje (${source}), dáta:`, data);
                     try {
@@ -1061,23 +1070,37 @@
             calculateTotal();
         }
 
+        // --- PLNÉ TELÁ FUNKCIÍ, KTORÉ BOLI PREDTÝM SKRÁTENÉ ---
+
         function isTimeValid(timeStr) {
             const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
             return timeRegex.test(timeStr);
         }
 
         function handleInput(input, nextId, day) {
-             formatInput(input); updateMonthDataFromInput(input, day); calculateRow(day); calculateTotal();
-             debouncedProcessInputCompletion(input.id, nextId);
-             if (input.value.length === 5 && isTimeValid(input.value)) { moveNext(input, nextId); }
+             formatInput(input); // Formátuj HH:MM
+             updateMonthDataFromInput(input, day); // Ulož hodnotu do monthData
+             calculateRow(day); // Prepočítaj riadok
+             calculateTotal(); // Prepočítaj súčet
+             debouncedProcessInputCompletion(input.id, nextId); // Spusti debouncované ukladanie
+             // Pokus o presun fokusu
+             if (input.value.length === 5 && isTimeValid(input.value)) {
+                 moveNext(input, nextId);
+             }
         }
 
         function handleBreakInput(day) {
             const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`);
-            updateMonthDataFromInput(input, day); calculateRow(day); calculateTotal();
-            const nextDay = day + 1; let nextInputElementId = null;
-            if (nextDay <= getDaysInMonth(currentMonth)) { nextInputElementId = `start-${currentYear}-${currentMonth}-${nextDay}`; }
-            debouncedProcessInputCompletion(input.id, nextInputElementId);
+            updateMonthDataFromInput(input, day); // Ulož hodnotu do monthData
+            calculateRow(day); // Prepočítaj riadok
+            calculateTotal(); // Prepočítaj súčet
+            // Priprav ID pre ďalší deň (ak existuje)
+            const nextDay = day + 1;
+            let nextInputElementId = null;
+            if (nextDay <= getDaysInMonth(currentMonth)) {
+                nextInputElementId = `start-${currentYear}-${currentMonth}-${nextDay}`;
+            }
+            debouncedProcessInputCompletion(input.id, nextInputElementId); // Spusti debouncované ukladanie
         }
 
         function updateMonthDataFromInput(input, day) {
@@ -1148,7 +1171,6 @@
             }
         }
 
-        // 16. Výpočet súčtov
         function calculateTotal() {
             let grandTotalWorkedMinutes = 0; let grandTotalGrossSalary = 0; let grandTotalNetSalary = 0; let daysWithEntries = 0;
             const rows = workDays.querySelectorAll('tr');
@@ -1177,7 +1199,6 @@
             totalSalaryDiv.innerHTML = `Počet dní so záznamom: ${daysWithEntries}<br>Celkový odpracovaný čas: ${totalHours}h ${totalMinutesRemainder}m (${grandTotalDecimalHours.toFixed(decimalPlaces || 2)} h)<br>Celková hrubá mzda: ${grandTotalGrossSalary.toFixed(2)} €<br>Celková čistá mzda: ${grandTotalNetSalary.toFixed(2)} €<br>Priemerná čistá mzda na deň: ${averageNetSalary.toFixed(2)} €<br><strong>Priemerný odpracovaný čas na deň: ${averageHours}h ${averageMinutes}m (${averageDecimalHours.toFixed(decimalPlaces || 2)} h)</strong>`;
         }
 
-        // 17. PDF Export
         function initializeJsPDFWithCheck() {
             if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') { showSaveNotification("Chyba: jsPDF nie je načítaná.", "error"); return null; }
             if (typeof window.jspdf.jsPDF.API?.autoTable === 'undefined') { showSaveNotification("Chyba: jsPDF-AutoTable nie je načítaný.", "error"); return null; }
@@ -1244,7 +1265,6 @@
              document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a);
         }
 
-        // 18. Ostatné nastavenia
         function changeDecimalPlaces() {
             const newDecimalPlaces = parseInt(decimalPlacesSelect.value);
             if (!isNaN(newDecimalPlaces) && (newDecimalPlaces === 1 || newDecimalPlaces === 2)) {
@@ -1282,7 +1302,7 @@
              try {
                  const totalData = Object.values(localStorage).reduce((acc, value) => acc + (value ? value.length : 0), 0); const kb = (totalData / 1024).toFixed(2); const perc = Math.min(((totalData / MAX_DATA_SIZE) * 100), 100);
                  dataSizeText.textContent = `Lokálne úložisko: ~${kb} KB / ${MAX_DATA_SIZE_KB} KB`; dataSizeFill.style.width = `${perc}%`;
-                 dataSizeFill.classList.remove('warn', 'danger'); if (perc > 90) dataSizeFill.classList.add('danger'); else if (perc > 70) dataSizeFill.classList.add('warn');
+                 dataSizeFill.classList.remove('warn', 'danger'); if (perc > 90) dataSizeFill.classList.add('danger'); else if (perc > 70) dataSizeFill.classList.add('warn'); else dataSizeFill.style.backgroundColor = '';
              } catch (error) { dataSizeText.textContent = "Chyba veľkosti dát."; }
         }
         function toggleDarkMode() {
@@ -1290,7 +1310,7 @@
             if (auth.currentUser) { debouncedProcessInputCompletion('settings-change', null); }
         }
 
-        // 19. Funkcia pre zbaliteľné nastavenia
+        // --- Funkcia pre zbaliteľné nastavenia ---
         function toggleSettingsVisibility() {
             settingsCollapsed = !settingsCollapsed;
             collapsibleSettingsItems.classList.toggle('hidden', settingsCollapsed);
@@ -1298,7 +1318,7 @@
             localStorage.setItem('settingsCollapsed', JSON.stringify(settingsCollapsed));
         }
 
-        // 20. Záloha a obnova
+        // --- Záloha a obnova ---
         function createBackup() {
             try {
                 const backupData = {
@@ -1337,7 +1357,7 @@
             fileInput.click();
         }
 
-        // 21. Inicializácia
+        // --- Inicializácia Aplikácie ---
         document.addEventListener('DOMContentLoaded', () => {
             console.log("DOM načítaný, inicializujem...");
             populateYearSelect();
@@ -1349,10 +1369,13 @@
             monthSelect.value = currentMonth; yearSelect.value = currentYear; // Nastav selecty
             employeeName = JSON.parse(localStorage.getItem('employeeName')) || ''; updateWelcomeMessage(); updateDataSize();
 
+            // Inicializácia zbaliteľných nastavení
             settingsCollapsed = JSON.parse(localStorage.getItem('settingsCollapsed')) || false;
-            collapsibleSettingsItems.classList.toggle('hidden', settingsCollapsed);
-            settingsToggleButton.textContent = settingsCollapsed ? 'Zobraziť nastavenia' : 'Skryť nastavenia';
-            settingsToggleButton.addEventListener('click', toggleSettingsVisibility);
+            if (collapsibleSettingsItems) collapsibleSettingsItems.classList.toggle('hidden', settingsCollapsed); // Check if exists
+            if (settingsToggleButton) {
+                settingsToggleButton.textContent = settingsCollapsed ? 'Zobraziť nastavenia' : 'Skryť nastavenia';
+                settingsToggleButton.addEventListener('click', toggleSettingsVisibility);
+            }
 
             if ('serviceWorker' in navigator) {
                  window.addEventListener('load', () => {
@@ -1369,7 +1392,13 @@
             for (let year = startYear; year <= endYear; year++) {
                 const option = document.createElement('option'); option.value = year; option.textContent = year; yearSelect.appendChild(option);
             }
-            yearSelect.value = currentYear;
+            // Skontroluj, či currentYear je definovaný pred nastavením hodnoty
+            if (currentYear !== undefined && currentYear !== null) {
+                 yearSelect.value = currentYear;
+            } else {
+                 // Ak nie je, nastav default (napr. aktuálny rok)
+                 yearSelect.value = new Date().getFullYear();
+            }
         }
 
     </script>
