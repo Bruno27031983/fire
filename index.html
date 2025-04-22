@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bruno's Calculator s Firebase Auth</title>
-  <link rel="manifest" href="manifest.json"> <!-- Predpokladá existenciu manifest.json pre PWA -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
@@ -21,157 +21,137 @@
 
   <style>
     /* --- ZAČIATOK CSS ŠTÝLOV --- */
-    :root { /* Farebné premenné pre ľahšiu údržbu */
-      --primary-bg: #f4f4f4; --primary-text: #333; --container-bg: white;
-      --table-header-bg: #f2f2f2; --table-border: #ddd; --input-bg: #ffffd0;
-      --input-border: #ccc; --accent-color: #4CAF50; --accent-hover: #388e3c;
-      --highlight-bg: #ffcc00; --highlight-text: #333; --highlight-border: #ffcc00;
-      --reset-bg: #f44336; --reset-hover: #d32f2f; --restore-bg: #9C27B0;
-      --restore-hover: #7B1FA2; --backup-bg: #FFA500; --backup-hover: #E68900;
-      --note-btn-bg: #6c757d; --note-btn-hover: #5a6268; --note-bg: #f0f0f0;
-      --current-day-bg: #8a2be2; --current-day-text: white; --current-day-input-bg: #9932cc;
-      --total-bg: #e6f3ff; --modal-bg: white; --modal-backdrop: rgba(0,0,0,0.6);
-      --link-color: #007bff; --link-hover: #0056b3; --scrollbar-track: #f1f1f1;
-      --scrollbar-thumb: #888; --scrollbar-thumb-hover: #555;
-
-      /* Dark Mode premenné */
-      --dark-primary-bg: #333; --dark-primary-text: #f4f4f4; --dark-container-bg: #444;
-      --dark-table-header-bg: #666; --dark-table-border: #555; --dark-input-bg: #666;
-      --dark-input-border: #888; --dark-accent-color: #2e7d32; --dark-accent-hover: #1b5e20;
-      --dark-highlight-bg: #e6c300; --dark-highlight-text: #222; --dark-highlight-border: #e6c300;
-      --dark-reset-bg: #c62828; --dark-reset-hover: #a32121; --dark-restore-bg: #6a1b9a;
-      --dark-restore-hover: #4a148c; --dark-backup-bg: #ef6c00; --dark-backup-hover: #cc5c00;
-      --dark-note-btn-bg: #828a91; --dark-note-btn-hover: #70777d; --dark-note-bg: #555;
-      --dark-current-day-bg: #4a0e8f; --dark-current-day-text: white; --dark-current-day-input-bg: #5c1db3;
-      --dark-total-bg: #2c3e50; --dark-modal-bg: #444; --dark-link-color: #4dabf7;
-      --dark-scrollbar-track: #444; --dark-scrollbar-thumb: #666; --dark-scrollbar-thumb-hover: #777;
-    }
-    body { font-family: 'Roboto', sans-serif; line-height: 1.6; margin: 0; padding: 10px; background-color: var(--primary-bg); color: var(--primary-text); transition: background-color 0.3s, color 0.3s; }
-    .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; transition: background-color 0.3s, color 0.3s; }
+    body { font-family: 'Roboto', sans-serif; line-height: 1.6; margin: 0; padding: 10px; background-color: #f4f4f4; color: #333; transition: background-color 0.3s, color 0.3s; }
+    .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; transition: background-color 0.3s, color 0.3s; }
     .autor-info { position: absolute; top: 10px; left: 10px; font-size: 14px; font-style: italic; color: #666; }
     h1 { text-align: center; font-size: 2.5em; background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ffff00, #ff00ff); background-clip: text; -webkit-background-clip: text; color: transparent; animation: gradientText 5s ease-in-out infinite, textShadowPulse 2s ease-in-out infinite; margin-bottom: 10px; }
     h2 { text-align: center; color: #555; margin-top: -10px; font-size: 1.2em; }
     .settings { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px; }
-    .settings > div, .settings > details, .settings > button { flex: 1 1 200px; margin: 0; min-width: 180px; /* Lepšie zobrazenie na menších */ }
-    .settings label { display: block; margin-bottom: 5px; font-weight: 500; }
-    .table-container { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
-    .table-container::-webkit-scrollbar { height: 8px; }
-    .table-container::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px;}
-    .table-container::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); border-radius: 4px; border: 2px solid var(--scrollbar-track); }
-    .table-container::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; min-width: 900px; /* Celková min šírka */ }
-    th, td { padding: 8px 6px; /* Užší padding */ border: 1px solid var(--table-border); text-align: left; font-size: 0.88em; /* Mierne menšie písmo */ vertical-align: top; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
-    th { background-color: var(--table-header-bg); font-weight: 600; }
-    input[type="tel"], input[type="number"], input[type="text"], select, .note-textarea { width: 100%; padding: 5px; box-sizing: border-box; background-color: var(--input-bg); font-size: 1em; /* Relatívne k rodičovi (td) */ border: 1px solid var(--input-border); border-radius: 3px; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+    .settings > div, .settings > details, .settings > button { flex: 1 1 200px; margin: 0; }
+    .settings label { display: block; margin-bottom: 5px; }
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; min-width: 900px; /* Môžeš znížiť, ak sú stĺpce celkovo užšie */ }
+    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; font-size: 0.9em; vertical-align: top; }
+    th { background-color: #f2f2f2; }
+    input[type="tel"], input[type="number"], input[type="text"], select, .note-textarea { width: 100%; padding: 5px; box-sizing: border-box; background-color: #ffffd0; font-size: 14px; border: 1px solid #ccc; border-radius: 3px; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
 
     /* --- ŠÍRKY STĹPCOV --- */
-    th:nth-child(1), td:nth-child(1) { min-width: 80px; /* Deň - UPRAV TÚTO HODNOTU */ white-space: normal; word-break: break-word; }
-    th:nth-child(2), td:nth-child(2) { min-width: 75px; } /* Príchod */
-    th:nth-child(3), td:nth-child(3) { min-width: 75px; } /* Odchod */
-    th:nth-child(4), td:nth-child(4) { min-width: 70px; } /* Prestávka */
-    th:nth-child(5), td:nth-child(5) { min-width: 110px; } /* Odpracované */
-    th:nth-child(6), td:nth-child(6) { min-width: 80px; } /* Hrubá Mzda */
-    th:nth-child(7), td:nth-child(7) { min-width: 80px; } /* Čistá Mzda */
-    th:nth-child(8), td:nth-child(8) { min-width: 110px; } /* Poznámka */
-    th:last-child, td:last-child { min-width: 60px; text-align: center; } /* Akcia (X) */
+    /*
+       *******************************************************
+       *** TU MÔŽEŠ UPRAVIŤ ŠÍRKU PRVÉHO STĹPCA ("Deň") ***
+       *** Zmeň hodnotu min-width (napr. 80px, 75px, 85px) ***
+       *** kým nebudeš spokojný so zalamovaním textu a šírkou ***
+       *******************************************************
+    */
+    th:nth-child(1), td:nth-child(1) {
+         min-width: 80px; /* <<< EXPERIMENTUJ S TOUTO HODNOTOU */
+         /* Nastavenie white-space: normal; je defaultné, ale pre istotu: */
+         white-space: normal; /* Umožní zalomenie textu */
+         word-break: break-word; /* Pomôže pri zalamovaní, ak je to potrebné */
+    }
+
+    /* Ostatné šírky (zostávajú ako boli) */
+    th:nth-child(2), td:nth-child(2) { min-width: 80px; } /* Príchod */
+    th:nth-child(3), td:nth-child(3) { min-width: 80px; } /* Odchod */
+    th:nth-child(4), td:nth-child(4) { min-width: 80px; } /* Prestávka */
+    th:nth-child(5), td:nth-child(5) { min-width: 120px; } /* Odpracované */
+    th:nth-child(6), td:nth-child(6) { min-width: 90px; } /* Hrubá Mzda */
+    th:nth-child(7), td:nth-child(7) { min-width: 90px; } /* Čistá Mzda */
+    th:nth-child(8), td:nth-child(8) { min-width: 120px; } /* Poznámka */
+    th:last-child, td:last-child { min-width: 90px; text-align: center; } /* Akcia */
     /* --- KONIEC ŠÍROK STĹPCOV --- */
 
+    /* ... (ostatné CSS pravidlá zostávajú rovnaké ako v predchádzajúcej verzii) ... */
     .btn-container { display: flex; flex-direction: column; width: 100%; gap: 15px; margin-top: 20px; }
     .btn { width: 100%; padding: 15px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease, color 0.3s; text-align: center; box-sizing: border-box; }
-    .reset-btn { background-color: var(--reset-bg); } .reset-btn:hover { background-color: var(--reset-hover); }
-    .export-btn { background-color: var(--accent-color); } .export-btn:hover { background-color: var(--accent-hover); }
-    .restore-btn { background-color: var(--restore-bg); } .restore-btn:hover { background-color: var(--restore-hover); }
-    .backup-btn { background-color: var(--backup-bg); } .backup-btn:hover { background-color: var(--backup-hover); }
-    .highlight { background-color: var(--highlight-bg); color: var(--highlight-text); font-weight: bold; border: 2px solid var(--highlight-border); }
-    #totalSalary { font-size: 1.1em; font-weight: bold; text-align: center; margin-top: 20px; padding: 12px; background-color: var(--total-bg); border-radius: 5px; transition: background-color 0.3s; line-height: 1.5; }
-    #totalSalary strong { display: block; margin-top: 5px; font-size: 0.95em; }
+    .reset-btn { background-color: #f44336; } .reset-btn:hover { background-color: #d32f2f; }
+    .export-btn { background-color: #4CAF50; } .export-btn:hover { background-color: #388e3c; }
+    .restore-btn { background-color: #9C27B0; } .restore-btn:hover { background-color: #7B1FA2; }
+    .backup-btn { background-color: #FFA500; } .backup-btn:hover { background-color: #E68900; }
+    .highlight { background-color: #ffcc00; color: #333; font-weight: bold; border: 2px solid #ffcc00; } /* Tlačidlo pre login/dark mode */
+    #totalSalary { font-size: 18px; font-weight: bold; text-align: center; margin-top: 20px; padding: 10px; background-color: #e6f3ff; border-radius: 5px; transition: background-color 0.3s; }
     #dataSizeContainer { margin-top: 10px; text-align: center; }
     #dataSizeText { margin-bottom: 5px; font-size: 14px; color: #555; }
     #dataSizeBar { width: 80%; height: 20px; background-color: #ddd; border-radius: 10px; margin: 0 auto; overflow: hidden; }
-    #dataSizeFill { height: 100%; width: 0%; background-color: var(--accent-color); transition: width 0.3s ease, background-color 0.3s; }
-    .current-day { background-color: var(--current-day-bg) !important; color: var(--current-day-text) !important; }
-    .current-day input, .current-day .note-textarea, .current-day .toggle-note-btn { background-color: var(--current-day-input-bg) !important; color: var(--current-day-text) !important; border-color: #c57eed !important; }
-    .current-day .toggle-note-btn:hover { background-color: #7a28a3 !important; }
+    #dataSizeFill { height: 100%; width: 0%; background-color: #4CAF50; transition: width 0.3s ease; }
+    .current-day { background-color: #8a2be2 !important; color: white !important; } /* !important pre prioritu */
+    .current-day input, .current-day .note-textarea, .current-day .toggle-note-btn { background-color: #9932cc !important; color: white !important; border-color: #c57eed !important; }
+    .current-day .toggle-note-btn:hover { background-color: #7a28a3 !important; } /* Hover pre current day note button */
     @keyframes gradientText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     @keyframes textShadowPulse { 0%, 100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.2); } 50% { text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 30px rgba(255, 255, 255, 0.9), 0 0 40px rgba(255, 255, 255, 0.7); } }
 
     /* Dark Mode */
-    body.dark-mode { background-color: var(--dark-primary-bg); color: var(--dark-primary-text); }
-    body.dark-mode .container { background-color: var(--dark-container-bg); }
-    body.dark-mode table { background-color: #555; }
-    body.dark-mode th { background-color: var(--dark-table-header-bg); border-color: #777; }
-    body.dark-mode td { background-color: #444; border-color: var(--dark-table-border); }
-    body.dark-mode input, body.dark-mode select, body.dark-mode .note-textarea { background-color: var(--dark-input-bg); color: white; border-color: var(--dark-input-border); }
-    body.dark-mode .btn:not(.highlight) { color: white; } /* Všetky okrem highlight majú biely text */
-    body.dark-mode .highlight { background-color: var(--dark-highlight-bg); color: var(--dark-highlight-text); border-color: var(--dark-highlight-border); }
-    body.dark-mode .reset-btn { background-color: var(--dark-reset-bg); } body.dark-mode .reset-btn:hover { background-color: var(--dark-reset-hover); }
-    body.dark-mode .export-btn { background-color: var(--dark-accent-color); } body.dark-mode .export-btn:hover { background-color: var(--dark-accent-hover); }
-    body.dark-mode .restore-btn { background-color: var(--dark-restore-bg); } body.dark-mode .restore-btn:hover { background-color: var(--dark-restore-hover); }
-    body.dark-mode .backup-btn { background-color: var(--dark-backup-bg); } body.dark-mode .backup-btn:hover { background-color: var(--dark-backup-hover); }
-    body.dark-mode #totalSalary { background-color: var(--dark-total-bg); }
-    body.dark-mode .current-day { background-color: var(--dark-current-day-bg) !important; }
-    body.dark-mode .current-day input, body.dark-mode .current-day .note-textarea, body.dark-mode .current-day .toggle-note-btn { background-color: var(--dark-current-day-input-bg) !important; border-color: #8e5ccf !important; }
+    body.dark-mode { background-color: #333; color: #f4f4f4; }
+    body.dark-mode .container { background-color: #444; color: #f4f4f4; }
+    body.dark-mode table { background-color: #555; color: #f4f4f4; }
+    body.dark-mode th { background-color: #666; border-color: #777; }
+    body.dark-mode td { background-color: #444; color: #f4f4f4; border-color: #555; }
+    body.dark-mode input[type="tel"], body.dark-mode input[type="number"], body.dark-mode input[type="text"], body.dark-mode select, body.dark-mode .note-textarea { background-color: #666; color: white; border-color: #888; }
+    body.dark-mode .btn:not(.highlight) { color: white; } /* Ostatné tlačidlá majú biely text */
+    body.dark-mode .highlight { background-color: #e6c300; color: #222; border-color: #e6c300;} /* Tmavší highlight v dark mode */
+    body.dark-mode .reset-btn { background-color: #c62828; } body.dark-mode .reset-btn:hover { background-color: #a32121; }
+    body.dark-mode .export-btn { background-color: #2e7d32; } body.dark-mode .export-btn:hover { background-color: #1b5e20; }
+    body.dark-mode .restore-btn { background-color: #6a1b9a; } body.dark-mode .restore-btn:hover { background-color: #4a148c; }
+    body.dark-mode .backup-btn { background-color: #ef6c00; } body.dark-mode .backup-btn:hover { background-color: #cc5c00; }
+    body.dark-mode #totalSalary { background-color: #2c3e50; }
+    body.dark-mode .current-day { background-color: #4a0e8f !important; color: #fff !important; }
+    body.dark-mode .current-day input, body.dark-mode .current-day .note-textarea, body.dark-mode .current-day .toggle-note-btn { background-color: #5c1db3 !important; color: #fff !important; border-color: #8e5ccf !important; }
     body.dark-mode .current-day .toggle-note-btn:hover { background-color: #4a148c !important; }
     body.dark-mode .autor-info { color: #aaa; }
     body.dark-mode h2 { color: #ccc; }
     body.dark-mode #dataSizeText { color: #bbb; }
     body.dark-mode #dataSizeBar { background-color: #555; }
-    body.dark-mode .table-container { scrollbar-color: var(--dark-scrollbar-thumb) var(--dark-scrollbar-track); }
-    body.dark-mode .table-container::-webkit-scrollbar-track { background: var(--dark-scrollbar-track); }
-    body.dark-mode .table-container::-webkit-scrollbar-thumb { background-color: var(--dark-scrollbar-thumb); border-color: var(--dark-scrollbar-track); }
-    body.dark-mode .table-container::-webkit-scrollbar-thumb:hover { background: var(--dark-scrollbar-thumb-hover); }
 
     /* Auth Modal */
-    #auth-modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-backdrop); z-index: 9990; }
-    #auth-container { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; max-width: 400px; width: 90%; background: var(--modal-bg); padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); text-align: center; transition: background-color 0.3s, color 0.3s; }
-    #auth-container h1 { font-size: 1.8em; margin-bottom: 15px; background: none; color: var(--primary-text); animation: none; }
+    #auth-modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 9990; }
+    #auth-container { /* Teraz ako modal */ display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; max-width: 400px; width: 90%; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); text-align: center; }
+    #auth-container h1 { font-size: 1.8em; margin-bottom: 15px; background: none; /* Odstrániť gradient z modalu */ color: #333; animation: none; }
     #auth-container h2 { font-size: 1.1em; color: #444; margin-top: 15px; margin-bottom: 5px; }
-    #auth-container input { width: calc(100% - 22px); padding: 10px; margin: 8px 0; border: 1px solid var(--input-border); border-radius: 4px; background-color: var(--input-bg); color: var(--primary-text); }
-    #auth-container button { width: 100%; padding: 12px; margin: 10px 0; border: none; background-color: var(--accent-color); color: white; font-size: 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
-    #auth-container button:hover { background-color: var(--accent-hover); }
+    #auth-container input { width: calc(100% - 22px); /* Lepšie zarovnanie */ padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
+    #auth-container button { width: 100%; padding: 12px; margin: 10px 0; border: none; background-color: #4CAF50; color: #fff; font-size: 16px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
+    #auth-container button:hover { background-color: #45a049; }
     #auth-close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #888; line-height: 1; padding: 0; }
-    #forgot-password-link { display: block; margin-top: 15px; font-size: 14px; color: var(--link-color); text-decoration: none; cursor: pointer; }
-    #forgot-password-link:hover { text-decoration: underline; color: var(--link-hover); }
-    body.dark-mode #auth-container { background-color: var(--dark-modal-bg); color: var(--dark-primary-text); }
-    body.dark-mode #auth-container h1 { color: var(--dark-primary-text); }
+    #forgot-password-link { display: block; margin-top: 15px; font-size: 14px; color: #007bff; text-decoration: none; cursor: pointer; }
+    #forgot-password-link:hover { text-decoration: underline; }
+    body.dark-mode #auth-container { background-color: #444; color: #f4f4f4; } /* Dark mode pre modal */
+    body.dark-mode #auth-container h1 { color: #f4f4f4; }
     body.dark-mode #auth-container h2 { color: #ccc; }
-    body.dark-mode #auth-container input { background-color: var(--dark-input-bg); border-color: var(--dark-input-border); }
-    body.dark-mode #auth-container button { background-color: var(--dark-accent-color); }
-    body.dark-mode #auth-container button:hover { background-color: var(--dark-accent-hover); }
+    body.dark-mode #auth-container input { background-color: #666; color: white; border-color: #888; }
+    body.dark-mode #auth-container button { background-color: #2e7d32; }
+    body.dark-mode #auth-container button:hover { background-color: #1b5e20; }
     body.dark-mode #auth-close-btn { color: #bbb; }
-    body.dark-mode #forgot-password-link { color: var(--dark-link-color); }
+    body.dark-mode #forgot-password-link { color: #4dabf7; }
 
     /* Notifikácia a Loading */
-    #saveNotification { position: fixed; bottom: 20px; right: 20px; background-color: var(--accent-color); color: white; padding: 12px 25px; border-radius: 5px; display: none; z-index: 1000; transition: background-color 0.3s ease, opacity 0.5s ease, transform 0.3s ease-out; transform: translateY(100%); /* Štart mimo obrazovky */ box-shadow: 0 3px 6px rgba(0,0,0,0.16); }
+    #saveNotification { position: fixed; bottom: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 12px 25px; border-radius: 5px; display: none; z-index: 1000; transition: background-color 0.3s ease, opacity 0.5s ease, transform 0.3s ease-out; transform: translateY(20px); }
     #saveNotification.show { display: block; opacity: 1; transform: translateY(0); }
-    #saveNotification.error { background-color: var(--reset-bg); }
-    #saveNotification.warning { background-color: var(--backup-bg); color: #333; }
-    #loading-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--primary-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease-out; }
+    #saveNotification.error { background-color: #f44336; }
+    #saveNotification.warning { background-color: #ff9800; }
+    #loading-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease-out; }
     #loading-container h1 { font-size: 1.5em; text-align: center; padding: 20px; max-width: 80%; background: none; color: #555; animation: none; }
     #loading-container.hidden { opacity: 0; pointer-events: none; }
-    body.dark-mode #loading-container { background-color: var(--dark-primary-bg); }
+    body.dark-mode #loading-container { background-color: #333; } /* Dark mode pre loading */
     body.dark-mode #loading-container h1 { color: #ccc; }
 
     /* Collapsible settings */
-    .collapsible-settings summary { cursor: pointer; padding: 8px; border: 1px solid var(--input-border); border-radius: 3px; background-color: var(--table-header-bg); margin-bottom: 5px; display: list-item; transition: background-color 0.2s ease; font-weight: bold; }
+    .collapsible-settings summary { cursor: pointer; padding: 8px; border: 1px solid #ccc; border-radius: 3px; background-color: #f8f8f8; margin-bottom: 5px; display: list-item; transition: background-color 0.2s ease; font-weight: bold; }
     .collapsible-settings summary:hover { background-color: #eee; }
-    .collapsible-content { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 10px 5px 5px 5px; border-top: 1px solid var(--table-border); margin-top: 5px; }
+    .collapsible-content { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 10px 5px 5px 5px; border-top: 1px solid #eee; margin-top: 5px; }
     .collapsible-content > div { flex: 1 1 200px; margin: 0; }
-    body.dark-mode .collapsible-settings summary { background-color: #555; border-color: #777; }
+    body.dark-mode .collapsible-settings summary { background-color: #555; border-color: #777; color: #f4f4f4; }
     body.dark-mode .collapsible-settings summary:hover { background-color: #666; }
     body.dark-mode .collapsible-content { border-top-color: #666; }
 
     /* Poznámky */
     .note-container { display: none; margin-top: 5px; }
     .note-container.visible { display: block; }
-    .note-textarea { width: 95%; min-height: 40px; resize: vertical; box-sizing: border-box; padding: 5px; border: 1px solid var(--input-border); border-radius: 3px; font-size: 0.95em; background-color: var(--note-bg); }
-    .toggle-note-btn { background-color: var(--note-btn-bg); color: white; padding: 2px 6px; /* Menšie */ border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; /* Menšie */ transition: background-color 0.2s ease; margin-bottom: 2px; display: inline-block; vertical-align: middle; /* Lepšie zarovnanie */ }
-    .toggle-note-btn:hover { background-color: var(--note-btn-hover); }
-    body.dark-mode .note-textarea { background-color: var(--dark-note-bg); border-color: var(--dark-input-border); }
-    body.dark-mode .toggle-note-btn { background-color: var(--dark-note-btn-bg); }
-    body.dark-mode .toggle-note-btn:hover { background-color: var(--dark-note-btn-hover); }
-
-    /* --- KONIEC CSS ŠTÝLOV --- */
+    .note-textarea { width: 95%; min-height: 40px; resize: vertical; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; background-color: #f0f0f0; }
+    .toggle-note-btn { background-color: #6c757d; color: white; padding: 3px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; transition: background-color 0.2s ease; margin-bottom: 2px; display: inline-block; /* Aby bol vedľa textu */ }
+    .toggle-note-btn:hover { background-color: #5a6268; }
+    body.dark-mode .note-textarea { background-color: #555; color: #f4f4f4; border-color: #777; }
+    body.dark-mode .toggle-note-btn { background-color: #828a91; }
+    body.dark-mode .toggle-note-btn:hover { background-color: #70777d; }
+     /* --- KONIEC CSS ŠTÝLOV --- */
   </style>
 </head>
 <body>
@@ -186,12 +166,12 @@
     <div id="auth-message">Zadajte svoje údaje pre ukladanie a synchronizáciu dát.</div>
     <div id="auth-forms">
       <h2>Registrácia</h2>
-      <input type="email" id="registerEmail" placeholder="Email" autocomplete="email">
-      <input type="password" id="registerPassword" placeholder="Heslo" autocomplete="new-password">
+      <input type="email" id="registerEmail" placeholder="Email">
+      <input type="password" id="registerPassword" placeholder="Heslo">
       <button onclick="registerAndClose()">Registrovať</button>
       <h2>Prihlásenie</h2>
-      <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
-      <input type="password" id="loginPassword" placeholder="Heslo" autocomplete="current-password">
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Heslo">
       <button onclick="loginAndClose()">Prihlásiť sa</button>
       <a id="forgot-password-link" onclick="forgotPassword()">Zabudli ste heslo?</a>
     </div>
@@ -236,14 +216,14 @@
                 </div>
                 <div>
                     <label for="taxRateInput">Daňové percento (%): </label>
-                    <input type="number" id="taxRateInput" value="2" min="0" max="100" step="0.1" oninput="updateSettings()">
+                    <input type="number" id="taxRateInput" value="2" min="0" step="0.1" oninput="updateSettings()">
                 </div>
                 <div>
                     <label for="yearSelect">Rok: </label>
                     <select id="yearSelect" onchange="changeYear()"></select>
                 </div>
                 <div>
-                    <label for="decimalPlacesSelect">Desat. miesta (hod): </label>
+                    <label for="decimalPlacesSelect">Počet desatinných miest: </label>
                     <select id="decimalPlacesSelect" onchange="changeDecimalPlaces()">
                         <option value="1">1</option> <option value="2">2</option>
                     </select>
@@ -264,17 +244,18 @@
         <tbody id="workDays"></tbody>
       </table>
     </div>
-    <div id="totalSalary">Celkové súčty sa načítavajú...</div> <!-- Placeholder text -->
+    <div id="totalSalary"></div>
     <div id="dataSizeContainer">
-      <div id="dataSizeText">Lokálne úložisko: N/A</div>
+      <div id="dataSizeText">Lokálne úložisko: ~0.00 KB / 4096 KB</div>
       <div id="dataSizeBar"><div id="dataSizeFill"></div></div>
     </div>
     <div class="btn-container">
-      <button class="btn reset-btn" onclick="resetAll()">Resetovať Mesiac</button>
-      <button class="btn export-btn" onclick="exportToPDF()">Exportovať PDF (Detail)</button>
-      <button class="btn export-btn" onclick="sendPDF()">Odoslať PDF (Dochádzka)</button>
-      <button class="btn restore-btn" onclick="restoreBackup()">Obnoviť Zálohu</button>
-      <button class="btn backup-btn" onclick="createBackup()">Vytvoriť Zálohu</button>
+      <button class="btn reset-btn" onclick="resetAll()">Resetovať všetko</button>
+      <button class="btn export-btn" onclick="exportToPDF()">Exportovať do PDF</button>
+      <button class="btn export-btn" onclick="sendPDF()">Odoslať</button>
+      <button class="btn restore-btn" onclick="restoreBackup()">Obnoviť zálohu</button>
+      <button class="btn backup-btn" onclick="createBackup()">Vytvoriť zálohu</button>
+      <!-- Pôvodné logout tlačidlo tu už nie je potrebné -->
     </div>
   </div>
 
@@ -287,94 +268,137 @@
     // 1. Firebase Config & Init
     const firebaseConfig = { apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo", authDomain: "bruno-3cee2.firebaseapp.com", projectId: "bruno-3cee2", storageBucket: "bruno-3cee2.appspot.com", messagingSenderId: "155545319308", appId: "1:155545319308:web:5da498ff1cd3e1833888a9" };
     firebase.initializeApp(firebaseConfig);
-    try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', true); } catch (error) { console.warn("App Check aktivácia chyba:", error); }
+    try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', true); } catch (error) { console.warn("Chyba pri aktivácii Firebase App Check:", error); }
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // 2. Firestore Offline Persistence
-    db.enablePersistence().then(() => console.log("Offline persistence OK.")).catch((err) => { console.error("Offline persistence chyba:", err.code); });
+    // 2. Povolenie Firestore Offline Persistence
+    db.enablePersistence().then(() => { console.log("Firestore offline persistence povolená."); }).catch((err) => { console.error("Firestore offline persistence chyba:", err.code, err.message, err); if (err.code == 'failed-precondition') { console.warn("Firestore offline persistence: Viacnásobné otvorené taby, povolené len v jednom."); } else if (err.code == 'unimplemented') { console.error("Firestore offline persistence: Prehliadač nie je podporovaný."); } });
 
     // 3. Globálne premenné
-    let currentMonth, currentYear, decimalPlaces = 1, employeeName = '', hourlyWage = 10, taxRate = 0.02;
-    let monthData = {};
-    let firestoreListenerUnsubscribe = null;
+    let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate;
+    let monthData = {}; // Objekt na ukladanie dát pre rôzne mesiace/roky
+    let firestoreListenerUnsubscribe = null; // Na odhlásenie listenera
 
     // Elementy UI
-    const workDays = document.getElementById('workDays'); const totalSalaryDiv = document.getElementById('totalSalary'); const dataSizeText = document.getElementById('dataSizeText'); const dataSizeFill = document.getElementById('dataSizeFill'); const hourlyWageInput = document.getElementById('hourlyWageInput'); const taxRateInput = document.getElementById('taxRateInput'); const monthSelect = document.getElementById('monthSelect'); const yearSelect = document.getElementById('yearSelect'); const decimalPlacesSelect = document.getElementById('decimalPlacesSelect'); const employeeNameInput = document.getElementById('employeeNameInput'); const MAX_DATA_SIZE = 4 * 1024 * 1024; const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
+    const workDays = document.getElementById('workDays');
+    const totalSalaryDiv = document.getElementById('totalSalary');
+    const dataSizeText = document.getElementById('dataSizeText');
+    const dataSizeFill = document.getElementById('dataSizeFill');
+    const hourlyWageInput = document.getElementById('hourlyWageInput');
+    const taxRateInput = document.getElementById('taxRateInput');
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    const decimalPlacesSelect = document.getElementById('decimalPlacesSelect');
+    const employeeNameInput = document.getElementById('employeeNameInput');
+    const MAX_DATA_SIZE = 4 * 1024 * 1024; // 4MB limit pre localStorage
+    const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
 
     // 4. Auth Modal Funkcie
     function showAuthModal() { document.getElementById('auth-modal-backdrop').style.display = 'block'; document.getElementById('auth-container').style.display = 'block'; if (document.body.classList.contains('dark-mode')) document.getElementById('auth-container').classList.add('dark-mode'); else document.getElementById('auth-container').classList.remove('dark-mode'); }
     function hideAuthModal() { document.getElementById('auth-modal-backdrop').style.display = 'none'; document.getElementById('auth-container').style.display = 'none'; }
-    function registerAndClose() { const e = document.getElementById('registerEmail').value, p = document.getElementById('registerPassword').value; if (!e || !p) { alert("Zadajte email aj heslo."); return; } auth.createUserWithEmailAndPassword(e, p).then(uc => { console.log("Registrovaný:", uc.user?.email); alert("Registrácia úspešná!"); hideAuthModal(); }).catch(err => { console.error("Registrácia chyba:", err.message); alert("Chyba registrácie: " + err.message); }); }
-    function loginAndClose() { const e = document.getElementById('loginEmail').value, p = document.getElementById('loginPassword').value; if (!e || !p) { alert("Zadajte email aj heslo."); return; } auth.signInWithEmailAndPassword(e, p).then(uc => { console.log("Prihlásený:", uc.user?.email); alert("Prihlásenie úspešné!"); hideAuthModal(); }).catch(err => { console.error("Prihlásenie chyba:", err.message); alert("Chyba prihlásenia: " + err.message); }); }
-    function logout() { auth.signOut().then(() => { console.log("Odhlásený."); showSaveNotification("Odhlásenie úspešné."); }).catch(err => { console.error("Logout chyba:", err.message); showSaveNotification("Chyba odhlásenia: " + err.message, "error"); }); }
-    function forgotPassword() { const email = document.getElementById('loginEmail').value; if (!email) { alert("Zadajte email."); return; } auth.sendPasswordResetEmail(email).then(() => alert("Email na obnovu hesla odoslaný.")).catch(err => alert("Chyba odoslania emailu: " + err.message)); }
+    function registerAndClose() { const email = document.getElementById('registerEmail').value; const password = document.getElementById('registerPassword').value; if (!email || !password) { alert("Prosím, zadajte email aj heslo."); return; } auth.createUserWithEmailAndPassword(email, password).then((userCredential) => { console.log("Registrovaný:", userCredential.user); alert("Registrácia úspešná!"); hideAuthModal(); }).catch((error) => { console.error("Chyba pri registrácii:", error.message); alert("Chyba pri registrácii: " + error.message); }); }
+    function loginAndClose() { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; if (!email || !password) { alert("Prosím, zadajte email aj heslo."); return; } auth.signInWithEmailAndPassword(email, password).then((userCredential) => { console.log("Prihlásený:", userCredential.user); alert("Prihlásenie úspešné!"); hideAuthModal(); }).catch((error) => { console.error("Chyba pri prihlásení:", error.message); alert("Chyba pri prihlásení: " + error.message); }); }
+    function logout() { auth.signOut().then(() => { console.log("Odhlásený."); showSaveNotification("Odhlásenie úspešné."); }).catch((error) => { console.error("Chyba pri odhlásení:", error.message); showSaveNotification("Chyba pri odhlásení: " + error.message, "error"); }); }
+    function forgotPassword() { const emailInput = document.getElementById('loginEmail'); const email = emailInput.value; if (!email) { alert("Prosím, zadajte svoju e-mailovú adresu do poľa pre prihlásenie."); emailInput.focus(); return; } auth.sendPasswordResetEmail(email).then(() => { console.log("E-mail na obnovenie hesla odoslaný na:", email); alert("Odkaz na obnovenie hesla bol odoslaný na vašu e-mailovú adresu. Skontrolujte si prosím poštu (aj priečinok Spam)."); }).catch((error) => { console.error("Chyba pri odosielaní e-mailu na obnovenie hesla:", error); alert("Chyba pri odosielaní e-mailu na obnovenie hesla: " + error.message); }); }
 
     // 5. Auth State Change Listener
     auth.onAuthStateChanged(user => {
-        console.log("Auth state:", user ? user.email : "None");
-        const loading = document.getElementById('loading-container'); if (loading && !loading.classList.contains('hidden')) loading.classList.add('hidden');
-        const msg = document.getElementById('auth-status-message'); const loginBtn = document.getElementById('login-register-btn'); const logoutBtn = document.getElementById('logout-btn-inline');
-        if (firestoreListenerUnsubscribe) { console.log("Odhlasujem FS listener."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
+        console.log("onAuthStateChanged: Stav zistený.", user ? `Používateľ: ${user.email}` : "Žiadny používateľ.");
+        const loadingContainer = document.getElementById('loading-container');
+        if (!loadingContainer.classList.contains('hidden')) { loadingContainer.classList.add('hidden'); }
+        const authStatusMsg = document.getElementById('auth-status-message'); const loginRegBtn = document.getElementById('login-register-btn'); const logoutBtnInline = document.getElementById('logout-btn-inline');
+        if (firestoreListenerUnsubscribe) { console.log("Odhlasujem Firestore listener."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
+
         if (user) { // PRIHLÁSENÝ
-            msg.textContent = `Prihlásený: ${user.email}`; loginBtn.style.display = 'none'; logoutBtn.style.display = 'inline-block'; setupFirestoreListener(); const userDocRef = db.collection("users").doc(user.uid); userDocRef.get().then(snap => { if (!snap.exists) userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true }); }); saveToLocalStorage(); // Sync local data after login
+            console.log("Stav: Prihlásený."); authStatusMsg.textContent = `Prihlásený: ${user.email}`; loginRegBtn.style.display = 'none'; logoutBtnInline.style.display = 'inline-block';
+            setupFirestoreListener();
+            const uid = user.uid; const userDocRef = db.collection("users").doc(uid); userDocRef.get().then(userDocSnap => { if (!userDocSnap.exists) { userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true }).catch(err => console.error("Chyba pri vytváraní user doc:", err)); } }).catch(err => console.error("Chyba pri kontrole user doc:", err));
+            console.log("Spúšťam saveToLocalStorage() po prihlásení."); saveToLocalStorage();
         } else { // NEPRIHLÁSENÝ
-            msg.textContent = "Používate aplikáciu anonymne."; loginBtn.style.display = 'inline-block'; logoutBtn.style.display = 'none';
-        } updateWelcomeMessage();
+            console.log("Stav: Neprihlásený."); authStatusMsg.textContent = "Používate aplikáciu anonymne."; loginRegBtn.style.display = 'inline-block'; logoutBtnInline.style.display = 'none';
+        }
+        updateWelcomeMessage();
     });
 
     // 6. Utility funkcie
-    function debounce(f, w) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f.apply(this, a), w); } }
-    function showSaveNotification(m, type = 'success') { const n = document.getElementById('saveNotification'); n.textContent = m; n.className = ''; requestAnimationFrame(() => { n.className = 'show'; if (type === 'error') n.classList.add('error'); else if (type === 'warning') n.classList.add('warning'); setTimeout(() => { n.classList.remove('show'); n.style.transform = 'translateY(100%)'; }, 3000); n.style.transform = 'translateY(0)'; }); }
-    function getFirstName(n) { if (!n || typeof n !== 'string') return ''; const t = n.trim(); return t ? t.split(' ')[0] : ''; }
+    function debounce(func, wait) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), wait); }; }
+    function showSaveNotification(message, type = 'success') { const n = document.getElementById('saveNotification'); n.textContent = message; n.className = ''; requestAnimationFrame(() => { n.className = 'show'; if (type === 'error') n.classList.add('error'); else if (type === 'warning') n.classList.add('warning'); setTimeout(() => { n.classList.remove('show'); n.style.transform = 'translateY(20px)'; }, 3000); n.style.transform = 'translateY(0)'; }); }
+    function getFirstName(fullName) { if (!fullName || typeof fullName !== 'string') { return ''; } const trimmedName = fullName.trim(); if (!trimmedName) { return ''; } const parts = trimmedName.split(' '); return parts[0]; }
     function updateWelcomeMessage() { const w = document.getElementById('welcomeMessage'); if (!w) return; const name = getFirstName(employeeName); w.textContent = name ? `Vitaj späť, ${name}! 👋` : ''; }
 
-    // 7. Firestore Listener Setup
+    // 7. Firestore Listener Setup (volá sa len prihláseným)
     function setupFirestoreListener() {
-        if (firestoreListenerUnsubscribe) { console.log("setupFSListener: Odhlasujem exist."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
+        if (firestoreListenerUnsubscribe) { console.log("setupFSListener: Odhlasujem existujúci."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
         const uid = auth.currentUser?.uid; if (!uid) { console.log("setupFSListener: Nie je UID."); return; }
-        if (currentMonth === undefined || currentYear === undefined) { const n = new Date(); currentMonth = currentMonth ?? n.getMonth(); currentYear = currentYear ?? n.getFullYear(); }
-        const docPath = `users/${uid}/calculatorData/${currentYear}-${currentMonth}`; const docRef = db.doc(docPath); console.log(`setupFSListener: Nastavujem pre ${docPath}`);
+        if (currentMonth === undefined || currentYear === undefined) { console.warn("setupFSListener: Chýba mesiac/rok."); const now = new Date(); currentMonth = currentMonth ?? now.getMonth(); currentYear = currentYear ?? now.getFullYear(); }
+        const docPath = `users/${uid}/calculatorData/${currentYear}-${currentMonth}`; const docRef = db.doc(docPath);
+        console.log(`setupFSListener: Nastavujem pre ${docPath}`);
         firestoreListenerUnsubscribe = docRef.onSnapshot({ includeMetadataChanges: true }, (docSnap) => {
-            const src = docSnap.metadata.fromCache ? "cache" : "server"; console.log(`FS Snap: ${docPath}(${src}). Pending:${docSnap.metadata.hasPendingWrites}`);
-            if (docSnap.metadata.hasPendingWrites) { console.log("FS Snap: Lokálny zápis, UI skip."); if (docSnap.exists) { /* Voliteľne aktualizovať len monthData */ } return; }
-            if (docSnap.exists) { // OPRAVENÉ
-                const data = docSnap.data(); console.log(`FS Snap: Dokument existuje.`); try {
-                    const fbH = data.hourlyWage??10, fbT=data.taxRate??2, fbD=data.decimalPlaces??1, fbN=data.employeeName??'', fbDK=data.darkMode??false, fbDays=data.days||[]; let uiUpd=false;
-                    if (hourlyWage !== fbH && document.activeElement !== hourlyWageInput) { hourlyWage=fbH; hourlyWageInput.value=hourlyWage; uiUpd=true; }
-                    if (taxRate !== (fbT/100) && document.activeElement !== taxRateInput) { taxRate=fbT/100; taxRateInput.value=taxRate*100; uiUpd=true; }
-                    if (decimalPlaces !== fbD) { decimalPlaces=fbD; decimalPlacesSelect.value=decimalPlaces; uiUpd=true; }
-                    if (employeeName !== fbN && document.activeElement !== employeeNameInput) { employeeName=fbN; employeeNameInput.value=employeeName; updateWelcomeMessage(); uiUpd=true; }
-                    if (document.body.classList.contains('dark-mode') !== fbDK) applyDarkMode(fbDK);
-                    const curLoc = (monthData?.[currentYear]?.[currentMonth])||[]; const fbMap = fbDays.map(d=>({start:d.start||'',end:d.end||'',breakTime:d.breakTime||'',note:d.note||''}));
-                    if (JSON.stringify(curLoc) !== JSON.stringify(fbMap)) { console.log("FS Snap: Zmena v dňoch."); if(!monthData)monthData={}; if(!monthData[currentYear])monthData[currentYear]={}; monthData[currentYear][currentMonth]=fbMap; const days=getDaysInMonth(currentMonth); const actId=document.activeElement?.id; for(let i=1; i<=days; i++){ const dayD=monthData[currentYear]?.[currentMonth]?.[i-1]; const base=`${currentYear}-${currentMonth}-${i}`; const s=document.getElementById(`start-${base}`); const e=document.getElementById(`end-${base}`); const b=document.getElementById(`break-${base}`); const n=document.getElementById(`note-${base}`); if(s&&e&&b&&n){ const ns=dayD?.start||''; const ne=dayD?.end||''; const nb=dayD?.breakTime||''; const nn=dayD?.note||''; if(s.value!==ns && actId!==s.id) s.value=ns; if(e.value!==ne && actId!==e.id) e.value=ne; if(b.value!==nb && actId!==b.id) b.value=nb; if(n.value!==nn && actId!==n.id) n.value=nn; calculateRow(i); } } uiUpd=true; }
-                    localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage)); localStorage.setItem('taxRate', JSON.stringify(taxRate*100)); localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode'))); localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces)); localStorage.setItem('employeeName', JSON.stringify(employeeName)); localStorage.setItem('workDaysData', JSON.stringify(monthData)); updateDataSize();
-                    if (uiUpd) calculateTotal();
-                } catch (err) { console.error("FS Snap: Chyba spracovania:", err); showSaveNotification("Chyba cloudu", "error"); }
-            } else { console.log(`FS Snap: Dokument ${docPath} neexistuje (${src}).`); const locD = (monthData?.[currentYear]?.[currentMonth]); if (locD && locD.length > 0) { console.log("FS Snap: Nahratie lokálnych dát."); saveToFirebase(); } }
-        }, (err) => { console.error(`FS Listener chyba ${docPath}:`, err); showSaveNotification("Chyba spojenia", "error"); });
+            const source = docSnap.metadata.fromCache ? "cache" : "server"; console.log(`FS Snapshot: ${docPath} (${source}). Pending: ${docSnap.metadata.hasPendingWrites}`);
+            if (docSnap.metadata.hasPendingWrites) {
+                console.log("FS Snapshot: Lokálny zápis, UI update preskočený.");
+                // --- KOREKCIA ZÁTVORIEK č.1 ---
+                if (docSnap.exists) { // <<< ODSTRÁNENÉ ZÁTVORKY ()
+                     const data = docSnap.data(); const firebaseDaysData = data.days || [];
+                     if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
+                     monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({ start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || '' }));
+                }
+                return;
+            }
+
+            // --- KOREKCIA ZÁTVORIEK č.2 ---
+            if (docSnap.exists) { // <<< ODSTRÁNENÉ ZÁTVORKY ()
+                const data = docSnap.data(); console.log(`FS Snapshot: Dokument existuje.`);
+                try {
+                    const fbHourly = data.hourlyWage ?? 10; const fbTax = data.taxRate ?? 2; const fbDecimals = data.decimalPlaces ?? 1; const fbName = data.employeeName ?? ''; const fbDark = data.darkMode ?? false; const fbDays = data.days || [];
+                    let uiNeedsUpdate = false;
+                    if (hourlyWage !== fbHourly && document.activeElement !== hourlyWageInput) { hourlyWage = fbHourly; hourlyWageInput.value = hourlyWage; uiNeedsUpdate = true; }
+                    if (taxRate !== (fbTax / 100) && document.activeElement !== taxRateInput) { taxRate = fbTax / 100; taxRateInput.value = taxRate * 100; uiNeedsUpdate = true; }
+                    if (decimalPlaces !== fbDecimals) { decimalPlaces = fbDecimals; decimalPlacesSelect.value = decimalPlaces; uiNeedsUpdate = true; }
+                    if (employeeName !== fbName && document.activeElement !== employeeNameInput) { employeeName = fbName; employeeNameInput.value = employeeName; updateWelcomeMessage(); uiNeedsUpdate = true; }
+                    if (document.body.classList.contains('dark-mode') !== fbDark) { applyDarkMode(fbDark); /* uiNeedsUpdate netreba, applyDarkMode robí dosť */ }
+
+                    const currentLocalData = (monthData?.[currentYear]?.[currentMonth]) || []; const fbDataMapped = fbDays.map(d => ({ start: d.start||'', end: d.end||'', breakTime: d.breakTime||'', note: d.note||'' }));
+                    if (JSON.stringify(currentLocalData) !== JSON.stringify(fbDataMapped)) {
+                        console.log("FS Snapshot: Zmena v dátach dní."); if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; monthData[currentYear][currentMonth] = fbDataMapped;
+                        const daysInMonth = getDaysInMonth(currentMonth); const activeId = document.activeElement?.id;
+                        for (let i = 1; i <= daysInMonth; i++) {
+                            const dayData = monthData[currentYear]?.[currentMonth]?.[i - 1]; const base = `${currentYear}-${currentMonth}-${i}`; const s = document.getElementById(`start-${base}`); const e = document.getElementById(`end-${base}`); const b = document.getElementById(`break-${base}`); const n = document.getElementById(`note-${base}`);
+                            if (s && e && b && n) { const ns = dayData?.start||''; const ne = dayData?.end||''; const nb = dayData?.breakTime||''; const nn = dayData?.note||'';
+                                if (s.value !== ns && activeId !== s.id) s.value = ns; if (e.value !== ne && activeId !== e.id) e.value = ne; if (b.value !== nb && activeId !== b.id) b.value = nb; if (n.value !== nn && activeId !== n.id) n.value = nn; calculateRow(i); } }
+                        uiNeedsUpdate = true;
+                    }
+                    localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage)); localStorage.setItem('taxRate', JSON.stringify(taxRate * 100)); localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode'))); localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces)); localStorage.setItem('employeeName', JSON.stringify(employeeName)); localStorage.setItem('workDaysData', JSON.stringify(monthData)); updateDataSize();
+                    if (uiNeedsUpdate) { calculateTotal(); }
+                } catch (err) { console.error(`FS Snapshot: Chyba spracovania:`, err); showSaveNotification("Chyba cloudu", "error"); }
+            } else { // Dokument neexistuje na Firebase
+                console.log(`FS Snapshot: Dokument ${docPath} neexistuje (${source}).`); const localData = (monthData?.[currentYear]?.[currentMonth]);
+                if (localData && localData.length > 0) { console.log(`FS Snapshot: Pokus o nahratie lokálnych dát.`); saveToFirebase(); }
+            }
+        }, (error) => { console.error(`FS Listener chyba pre ${docPath}:`, error); showSaveNotification("Chyba spojenia s cloudom", "error"); });
     }
 
     // 8. Ukladanie do Firebase
-    async function saveToFirebase() { const user = auth.currentUser; if (!user) return; try { const data = (monthData?.[currentYear]?.[currentMonth]) || []; console.log(`saveToFirebase: ${data.length} pre ${currentYear}-${currentMonth}`); const payload = { days: data, hourlyWage: hourlyWage||10, taxRate: (taxRate*100)||2, decimalPlaces: decimalPlaces||1, employeeName: employeeName||'', darkMode: document.body.classList.contains('dark-mode'), timestamp: firebase.firestore.FieldValue.serverTimestamp() }; const docRef = db.collection("users").doc(user.uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`); await docRef.set(payload, { merge: true }); console.log(`saveToFirebase: Uložené.`); } catch (err) { console.error(`saveToFirebase chyba:`, err); showSaveNotification("Chyba cloud ukladania", "error"); } }
+    async function saveToFirebase() { const user = auth.currentUser; if (!user) return; try { const data = (monthData?.[currentYear]?.[currentMonth]) || []; console.log(`saveToFirebase: ${data.length} záznamov pre ${currentYear}-${currentMonth}`); const payload = { days: data, hourlyWage: hourlyWage||10, taxRate: (taxRate*100)||2, decimalPlaces: decimalPlaces||1, employeeName: employeeName||'', darkMode: document.body.classList.contains('dark-mode'), timestamp: firebase.firestore.FieldValue.serverTimestamp() }; const docRef = db.collection("users").doc(user.uid).collection("calculatorData").doc(`${currentYear}-${currentMonth}`); await docRef.set(payload, { merge: true }); console.log(`saveToFirebase: Uložené do ${docRef.path}`); } catch (err) { console.error(`saveToFirebase chyba:`, err); showSaveNotification("Chyba ukladania do cloudu", "error"); } }
 
     // 9. Ukladanie do Local Storage
-    function saveToLocalStorage() { try { localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage)); localStorage.setItem('taxRate', JSON.stringify(taxRate * 100)); localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode'))); localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces)); localStorage.setItem('employeeName', JSON.stringify(employeeName)); localStorage.setItem('currentMonth', currentMonth.toString()); localStorage.setItem('currentYear', currentYear.toString()); if (!monthData) monthData={}; if (!monthData[currentYear]) monthData[currentYear]={}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth]=[]; const dataStr = JSON.stringify(monthData); const bytes = new Blob([dataStr]).size; if (bytes > MAX_DATA_SIZE) { alert(`Lok. úložisko plné!`); return; } if (bytes > MAX_DATA_SIZE*0.95) showSaveNotification(`Pozor: Lok. úložisko takmer plné!`, "warning"); localStorage.setItem('workDaysData', dataStr); updateDataSize(); if (auth.currentUser) saveToFirebase(); } catch (err) { console.error('saveToLocal chyba:', err); showSaveNotification("Chyba lok. ukladania!", "error"); } }
+    function saveToLocalStorage() { try { localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage)); localStorage.setItem('taxRate', JSON.stringify(taxRate * 100)); localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode'))); localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces)); localStorage.setItem('employeeName', JSON.stringify(employeeName)); localStorage.setItem('currentMonth', currentMonth.toString()); localStorage.setItem('currentYear', currentYear.toString()); if (!monthData) monthData={}; if (!monthData[currentYear]) monthData[currentYear]={}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth]=[]; const dataStr = JSON.stringify(monthData); const bytes = new Blob([dataStr]).size; if (bytes > MAX_DATA_SIZE) { alert(`Lokálne úložisko je plné! (${(bytes/1024).toFixed(0)} KB). Ukladanie zlyhalo.`); showSaveNotification("Chyba: Lokálne úložisko plné!", "error"); return; } if (bytes > MAX_DATA_SIZE * 0.95) { showSaveNotification(`Pozor: Lokálne úložisko je takmer plné!`, "warning"); } localStorage.setItem('workDaysData', dataStr); updateDataSize(); if (auth.currentUser) { saveToFirebase(); } } catch (err) { console.error('saveToLocalStorage chyba:', err); showSaveNotification("Chyba lokálneho ukladania!", "error"); } }
     const debouncedSaveToLocalStorage = debounce(saveToLocalStorage, 700);
 
     // 10. Načítanie z Local Storage
-    function loadFromLocalStorage() { try { if (currentMonth === undefined) { const sm = localStorage.getItem('currentMonth'); currentMonth = sm ? parseInt(sm) : new Date().getMonth(); } if (currentYear === undefined) { const sy = localStorage.getItem('currentYear'); currentYear = sy ? parseInt(sy) : new Date().getFullYear(); } console.log(`loadFromLocal: ${getMonthName(currentMonth)} ${currentYear}`); const storedData = localStorage.getItem('workDaysData'); monthData = storedData ? JSON.parse(storedData) : {}; hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage')))||10; taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate')))/100||0.02; const dm = JSON.parse(localStorage.getItem('darkMode'))||false; decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces')))||1; employeeName = JSON.parse(localStorage.getItem('employeeName'))||''; updateUIFromLoadedData(dm); } catch (err) { console.error(`loadFromLocal chyba:`, err); showSaveNotification("Chyba lok. dát!", "error"); monthData={}; hourlyWage=10; taxRate=0.02; decimalPlaces=1; employeeName=''; updateUIFromLoadedData(false); } }
+    function loadFromLocalStorage() { try { if (currentMonth === undefined) { const sm = localStorage.getItem('currentMonth'); currentMonth = sm ? parseInt(sm) : new Date().getMonth(); } if (currentYear === undefined) { const sy = localStorage.getItem('currentYear'); currentYear = sy ? parseInt(sy) : new Date().getFullYear(); } console.log(`loadFromLocalStorage: ${getMonthName(currentMonth)} ${currentYear}`); const storedData = localStorage.getItem('workDaysData'); monthData = storedData ? JSON.parse(storedData) : {}; hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage')))||10; taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate')))/100||0.02; const darkMode = JSON.parse(localStorage.getItem('darkMode'))||false; decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces')))||1; employeeName = JSON.parse(localStorage.getItem('employeeName'))||''; updateUIFromLoadedData(darkMode); } catch (err) { console.error(`loadFromLocalStorage chyba:`, err); showSaveNotification("Chyba načítania lokálnych dát!", "error"); monthData={}; hourlyWage=10; taxRate=0.02; decimalPlaces=1; employeeName=''; updateUIFromLoadedData(false); } }
 
     // 11. Update UI z dát
-    function updateUIFromLoadedData(darkModeValue) { console.log(`updateUI: ${getMonthName(currentMonth)} ${currentYear}`); try { hourlyWageInput.value=hourlyWage; taxRateInput.value=taxRate*100; decimalPlacesSelect.value=decimalPlaces; employeeNameInput.value=employeeName; if (monthSelect.querySelector(`option[value="${currentMonth}"]`)) monthSelect.value=currentMonth; else { monthSelect.value=new Date().getMonth(); currentMonth=parseInt(monthSelect.value); localStorage.setItem('currentMonth',currentMonth.toString()); } if (yearSelect.querySelector(`option[value="${currentYear}"]`)) yearSelect.value=currentYear; else { yearSelect.value=new Date().getFullYear(); currentYear=parseInt(yearSelect.value); localStorage.setItem('currentYear',currentYear.toString()); populateYearSelect(); yearSelect.value=currentYear; } createTable(); const data=(monthData?.[currentYear]?.[currentMonth])||[]; console.log(`updateUI: Plním ${data.length} záznamov.`); data.forEach((d, i) => { const day=i+1; const base=`${currentYear}-${currentMonth}-${day}`; const s=document.getElementById(`start-${base}`); const e=document.getElementById(`end-${base}`); const b=document.getElementById(`break-${base}`); const n=document.getElementById(`note-${base}`); if(s&&e&&b&&n){ s.value=d.start||''; e.value=d.end||''; b.value=d.breakTime||''; n.value=d.note||''; calculateRow(day); }}); calculateTotal(); updateDataSize(); applyDarkMode(darkModeValue); updateWelcomeMessage(); console.log("updateUI: OK."); } catch (err) { console.error("updateUI chyba:", err); showSaveNotification("Chyba UI!", "error"); } }
+    function updateUIFromLoadedData(darkModeValue) { console.log(`updateUIFromLoadedData: ${getMonthName(currentMonth)} ${currentYear}`); try { hourlyWageInput.value=hourlyWage; taxRateInput.value=taxRate*100; decimalPlacesSelect.value=decimalPlaces; employeeNameInput.value=employeeName; if (monthSelect.querySelector(`option[value="${currentMonth}"]`)) monthSelect.value=currentMonth; else { monthSelect.value=new Date().getMonth(); currentMonth=parseInt(monthSelect.value); localStorage.setItem('currentMonth',currentMonth.toString()); } if (yearSelect.querySelector(`option[value="${currentYear}"]`)) yearSelect.value=currentYear; else { yearSelect.value=new Date().getFullYear(); currentYear=parseInt(yearSelect.value); localStorage.setItem('currentYear',currentYear.toString()); populateYearSelect(); yearSelect.value=currentYear; } createTable(); const data=(monthData?.[currentYear]?.[currentMonth])||[]; console.log(`updateUI: Plním ${data.length} záznamov.`); data.forEach((d, i) => { const day=i+1; const base=`${currentYear}-${currentMonth}-${day}`; const s=document.getElementById(`start-${base}`); const e=document.getElementById(`end-${base}`); const b=document.getElementById(`break-${base}`); const n=document.getElementById(`note-${base}`); if(s&&e&&b&&n){ s.value=d.start||''; e.value=d.end||''; b.value=d.breakTime||''; n.value=d.note||''; calculateRow(day); }}); calculateTotal(); updateDataSize(); applyDarkMode(darkModeValue); updateWelcomeMessage(); console.log("updateUI: Dokončené."); } catch (err) { console.error("updateUI chyba:", err); showSaveNotification("Chyba prekreslenia UI!", "error"); } }
 
     // 12. Dark Mode Toggle
     function applyDarkMode(isDark) { const b=document.body; if(isDark) b.classList.add('dark-mode'); else b.classList.remove('dark-mode'); }
     function toggleDarkMode() { const isDark = !document.body.classList.contains('dark-mode'); applyDarkMode(isDark); localStorage.setItem('darkMode', JSON.stringify(isDark)); debouncedSaveToLocalStorage(); }
 
     // 13. Table & Input Logic
-    function getDayName(y, m, d) { const days=["Ned","Pon","Uto","Str","Štv","Pia","Sob"]; return days[new Date(y,m,d).getDay()]; }
-    function createTable() { workDays.innerHTML = ''; const head = document.querySelector('table thead tr'); if (head && !head.querySelector('.th-note')) { const th=document.createElement('th'); th.textContent='Pozn.'; th.classList.add('th-note'); head.insertBefore(th, head.lastElementChild); } const days = getDaysInMonth(currentMonth); const today = new Date(); const d=today.getDate(), m=today.getMonth(), y=today.getFullYear(); let html = ''; for (let i = 1; i <= days; i++) { const cur = (i===d && currentMonth===m && currentYear===y); const dayN = getDayName(currentYear, currentMonth, i); const base = `${currentYear}-${currentMonth}-${i}`; html += `<tr class="${cur?'current-day':''}"><td>${i}(${dayN})</td><td><input type="tel" id="start-${base}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'end-${base}', ${i})"></td><td><input type="tel" id="end-${base}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'break-${base}', ${i})"></td><td><input type="number" id="break-${base}" min="0" step="0.5" placeholder="hod" oninput="handleBreakInput(${i})"></td><td id="total-${base}">0h 0m (0.0 h)</td><td><input type="number" id="gross-${base}" readonly style="font-size:0.9em; padding: 4px;"></td><td><input type="number" id="net-${base}" readonly style="font-size:0.9em; padding: 4px;"></td><td><button id="note-toggle-${base}" class="toggle-note-btn" onclick="toggleNote(${i})">Pozn</button><div id="note-container-${base}" class="note-container"><textarea id="note-${base}" class="note-textarea" placeholder="..." oninput="handleNoteInput(this, ${i})"></textarea></div></td><td><button class="btn reset-btn" onclick="resetRow(${i})" style="padding: 4px 8px; font-size: 0.9em;">X</button></td></tr>`; } workDays.innerHTML = html; applyDarkMode(document.body.classList.contains('dark-mode')); }
+    function getDayName(y, m, d) { const days=["Ned","Pon","Uto","Str","Štv","Pia","Sob"]; return days[new Date(y,m,d).getDay()]; } // Skrátené dni
+    function createTable() { workDays.innerHTML = ''; const head = document.querySelector('table thead tr'); if (head && !head.querySelector('.th-note')) { const th=document.createElement('th'); th.textContent='Pozn.'; th.classList.add('th-note'); head.insertBefore(th, head.lastElementChild); } const days = getDaysInMonth(currentMonth); const today = new Date(); const d=today.getDate(), m=today.getMonth(), y=today.getFullYear(); let html = ''; for (let i = 1; i <= days; i++) { const cur = (i===d && currentMonth===m && currentYear===y); const dayN = getDayName(currentYear, currentMonth, i); const base = `${currentYear}-${currentMonth}-${i}`; html += `<tr class="${cur?'current-day':''}"><td>${i}(${dayN})</td><td><input type="tel" id="start-${base}" maxlength="5" pattern="[0-9:]*" iputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'end-${base}', ${i})"></td><td><input type="tel" id="end-${base}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, 'break-${base}', ${i})"></td><td><input type="number" id="break-${base}" min="0" step="0.5" placeholder="hod" oninput="handleBreakInput(${i})"></td><td id="total-${base}">0h 0m (0.0 h)</td><td><input type="number" id="gross-${base}" readonly></td><td><input type="number" id="net-${base}" readonly></td><td><button id="note-toggle-${base}" class="toggle-note-btn" onclick="toggleNote(${i})">Pozn</button><div id="note-container-${base}" class="note-container"><textarea id="note-${base}" class="note-textarea" placeholder="..." oninput="handleNoteInput(this, ${i})"></textarea></div></td><td><button class="btn reset-btn" onclick="resetRow(${i})" style="padding: 4px 8px; font-size: 0.9em;">X</button></td></tr>`; } workDays.innerHTML = html; applyDarkMode(document.body.classList.contains('dark-mode')); }
     function toggleNote(day) { const cont=document.getElementById(`note-container-${currentYear}-${currentMonth}-${day}`); const btn=document.getElementById(`note-toggle-${currentYear}-${currentMonth}-${day}`); if(cont&&btn){const vis=cont.classList.toggle('visible'); btn.textContent=vis?'Skry':'Pozn';}}
     function handleNoteInput(ta, day) { updateMonthDataFromInput(ta, day); debouncedSaveToLocalStorage(); }
     function isTimeValid(t) { return /^([01]\d|2[0-3]):([0-5]\d)$/.test(t); }
@@ -388,30 +412,30 @@
     function resetAll() { if(confirm('Naozaj resetovať celý mesiac?')){ if(!monthData)monthData={}; if(!monthData[currentYear])monthData[currentYear]={}; monthData[currentYear][currentMonth]=[]; createTable(); calculateTotal(); debouncedSaveToLocalStorage(); showSaveNotification("Mesiac resetovaný.");}}
 
     // 14. Calculate Total
-    function calculateTotal() { let totMins=0, days=0; const data=(monthData?.[currentYear]?.[currentMonth])||[]; data.forEach(d=>{if(d&&d.start&&d.end&&isTimeValid(d.start)&&isTimeValid(d.end)){const b=parseFloat(d.breakTime)||0; const[sh,sm]=d.start.split(':').map(Number); const[eh,em]=d.end.split(':').map(Number); const stm=sh*60+sm; let etm=eh*60+em; if(etm<stm)etm+=1440; const diff=etm-stm; const brk=b*60; const wm=Math.max(0,diff-brk); if(wm>0){totMins+=wm; days++;}}}); const totHrsDec=totMins/60; const hw=hourlyWage; const tr=taxRate; const dec=decimalPlaces||1; const gs=totHrsDec*hw; const ns=gs*(1-tr); const avgNs=days>0?(ns/days):0; const avgMins=days>0?totMins/days:0; const avgH=Math.floor(avgMins/60); const avgM=Math.round(avgMins%60); const avgHrsDec=avgMins/60; const totH=Math.floor(totMins/60); const totMrem=Math.round(totMins%60); totalSalaryDiv.innerHTML = `Dni: ${days} | Celk. čas: ${totH}h ${totMrem}m (${totHrsDec.toFixed(dec)} h) | Hrubá: ${gs.toFixed(2)}€ | Čistá: ${ns.toFixed(2)}€ | Priem. čistá: ${avgNs.toFixed(2)}€/d | <strong>Priem. čas: ${avgH}h ${avgM}m (${avgHrsDec.toFixed(dec)} h)/d</strong>`; }
+    function calculateTotal() { let totMins=0, days=0; const data=(monthData?.[currentYear]?.[currentMonth])||[]; data.forEach(d=>{if(d&&d.start&&d.end&&isTimeValid(d.start)&&isTimeValid(d.end)){const b=parseFloat(d.breakTime)||0; const[sh,sm]=d.start.split(':').map(Number); const[eh,em]=d.end.split(':').map(Number); const stm=sh*60+sm; let etm=eh*60+em; if(etm<stm)etm+=1440; const diff=etm-stm; const brk=b*60; const wm=Math.max(0,diff-brk); if(wm>0){totMins+=wm; days++;}}}); const totHrsDec=totMins/60; const hw=hourlyWage; const tr=taxRate; const dec=decimalPlaces||1; const gs=totHrsDec*hw; const ns=gs*(1-tr); const avgNs=days>0?(ns/days):0; const avgMins=days>0?totMins/days:0; const avgH=Math.floor(avgMins/60); const avgM=Math.round(avgMins%60); const avgHrsDec=avgMins/60; const totH=Math.floor(totMins/60); const totMrem=Math.round(totMins%60); totalSalaryDiv.innerHTML = `Dni: ${days} | Celk. čas: ${totH}h ${totMrem}m (${totHrsDec.toFixed(dec)} h) | Hrubá mzda: ${gs.toFixed(2)}€ | Čistá mzda: ${ns.toFixed(2)}€ | Priem. čistá: ${avgNs.toFixed(2)}€/deň | <strong>Priem. čas: ${avgH}h ${avgM}m (${avgHrsDec.toFixed(dec)} h)/deň</strong>`; }
 
     // 15. PDF Export
-    function exportToPDF() { if(typeof jspdf === 'undefined' || !jspdf.jsPDF || !jspdf.jsPDF.API?.autoTable){alert("PDF chyba.");return;} const{jsPDF}=jspdf; try{const d=new jsPDF(); try{d.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf','Roboto','normal'); d.setFont('Roboto');}catch(e){} d.setFontSize(18); d.text(`Výkaz (${getMonthName(currentMonth)} ${currentYear})`,14,20); d.setFontSize(12); d.text(`Pracovník: ${employeeName||'-'}`,14,28); d.text(`Mzda:${hourlyWage||'?'}€/h|Daň:${(taxRate*100).toFixed(1)}%`,14,34); const c=["Deň","Od","Do","Pr.","Hod","Hrubá","Čistá","Pozn."]; const r=[]; const data=(monthData?.[currentYear]?.[currentMonth])||[]; data.forEach((day,i)=>{if(day.start||day.end||day.note){const dn=i+1; const dayN=getDayName(currentYear,currentMonth,dn); let wh='0.0'; const tc=document.getElementById(`total-${currentYear}-${currentMonth}-${dn}`); if(tc){const m=tc.textContent.match(/\((.*?)\s*h\)/); if(m) wh=m[1];} const gv=document.getElementById(`gross-${currentYear}-${currentMonth}-${dn}`)?.value||'0.00'; const nv=document.getElementById(`net-${currentYear}-${currentMonth}-${dn}`)?.value||'0.00'; r.push([`${dn}(${dayN})`,day.start||'-',day.end||'-',day.breakTime||'0',wh,gv,nv,day.note||'']);}}); d.autoTable({head:[c],body:r,startY:40, headStyles:{fillColor:[41,128,185],textColor:255,fontSize:8,cellPadding:1.5}, styles:{fontSize:8,cellPadding:1.5,overflow:'linebreak'}, columnStyles:{0:{cellWidth:18},1:{cellWidth:15},2:{cellWidth:15},3:{cellWidth:10},4:{cellWidth:15},5:{cellWidth:18},6:{cellWidth:18},7:{cellWidth:'auto'}}, alternateRowStyles:{fillColor:[240,240,240]}}); const fy=d.lastAutoTable.finalY||40; d.setFontSize(10); const tt=totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi,'\n').replace(/<\/?strong>/g,'').replace(/ /g,' '); d.text(tt,14,fy+10); d.save(`Vykaz-${employeeName||'p'}-${currentYear}-${getMonthName(currentMonth)}.pdf`); showSaveNotification("PDF export OK.");}catch(err){console.error("PDF export chyba:",err); alert("Chyba PDF exportu.");}}
-    function sendPDF() { if(typeof jspdf==='undefined' || !jspdf.jsPDF || !jspdf.jsPDF.API?.autoTable){alert("PDF chyba.");return;} const{jsPDF}=jspdf; try{const d=new jsPDF(); try{d.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf','Roboto','normal'); d.setFont('Roboto');}catch(e){} d.setFontSize(16); d.text(`Dochádzka - ${getMonthName(currentMonth)} ${currentYear}`,14,20); d.setFontSize(12); d.text(`Pracovník: ${employeeName||'-'}`,14,28); const c=["Deň","Od","Do","Pr.(h)","Pozn."]; const r=[]; const data=(monthData?.[currentYear]?.[currentMonth])||[]; data.forEach((day,i)=>{if(day.start||day.end||day.note){const dn=i+1; const dayN=getDayName(currentYear,currentMonth,dn); r.push([`${dn}(${dayN})`,day.start||'-',day.end||'-',day.breakTime||'0',day.note||'']);}}); d.autoTable({head:[c],body:r,startY:35, headStyles:{fillColor:[41,128,185],textColor:255,fontSize:9}, styles:{fontSize:9,overflow:'linebreak'}, columnStyles:{4:{cellWidth:60}}, alternateRowStyles:{fillColor:[240,240,240]}}); const fy=d.lastAutoTable.finalY||35; d.setFontSize(10); const th=totalSalaryDiv.innerHTML; let days='N/A'; const m=th.match(/Dni: (\d+)/); if(m)days=m[1]; const s=`Počet odprac. dní: ${days}`; d.text(s,14,fy+10); const blob=d.output('blob'); const fname=`Dochadzka-${employeeName||'p'}-${currentYear}-${getMonthName(currentMonth)}.pdf`; const file=new File([blob],fname,{type:'application/pdf'}); if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){navigator.share({files:[file],title:`Dochádzka ${getMonthName(currentMonth)} ${currentYear}`,text:`Dochádzka pre ${employeeName||'pracovníka'} ${getMonthName(currentMonth)} ${currentYear}.`}).then(()=>showSaveNotification("Pripravené na zdieľanie.")).catch((err)=>{if(err.name !== 'AbortError')showSaveNotification('Chyba zdieľania.','error');});}else{showSaveNotification("Zdieľanie nie je podporované, sťahujem.","warning"); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.style.display='none'; a.href=url; a.download=fname; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a);}}catch(err){console.error("PDF send chyba:",err); alert("Chyba PDF na odoslanie.");}}
+    function exportToPDF() { if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF || !window.jspdf.jsPDF.API?.autoTable) { alert("PDF knižnica nie je načítaná."); return; } const { jsPDF } = window.jspdf; try { const doc = new jsPDF(); try { doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal'); doc.setFont('Roboto'); } catch(e){} doc.setFontSize(18); doc.text(`Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20); doc.setFontSize(12); doc.text(`Pracovník: ${employeeName||'-'}`, 14, 28); doc.text(`Mzda: ${hourlyWage||'?'}€/h | Daň: ${(taxRate*100).toFixed(1)}%`, 14, 34); const cols = ["Deň", "Od", "Do", "Pr.", "Hod", "Hrubá", "Čistá", "Pozn."]; const rows = []; const data = (monthData?.[currentYear]?.[currentMonth]) || []; data.forEach((d, i) => { if (d.start || d.end || d.note) { const day = i+1; const dayN = getDayName(currentYear, currentMonth, day); let wh='0.0'; const tc=document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); if(tc){const m=tc.textContent.match(/\((.*?)\s*h\)/); if(m) wh=m[1];} const gv=document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`)?.value||'0.00'; const nv=document.getElementById(`net-${currentYear}-${currentMonth}-${day}`)?.value||'0.00'; rows.push([ `${day}(${dayN})`, d.start||'-', d.end||'-', d.breakTime||'0', wh, gv, nv, d.note||'' ]); } }); doc.autoTable({ head: [cols], body: rows, startY: 40, headStyles: { fillColor:[41,128,185], textColor:255, fontSize:8, cellPadding:1.5 }, styles: { fontSize:8, cellPadding:1.5, overflow:'linebreak'}, columnStyles: { 0:{cellWidth:18}, 1:{cellWidth:15}, 2:{cellWidth:15}, 3:{cellWidth:10}, 4:{cellWidth:15}, 5:{cellWidth:18}, 6:{cellWidth:18}, 7:{cellWidth:'auto'} }, alternateRowStyles:{fillColor:[240,240,240]} }); const finalY = doc.lastAutoTable.finalY || 40; doc.setFontSize(10); const totalTxt = totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?strong>/g, '').replace(/ /g, ' '); doc.text(totalTxt, 14, finalY + 10); doc.save(`Vykaz-${employeeName||'pracovnik'}-${currentYear}-${getMonthName(currentMonth)}.pdf`); showSaveNotification("PDF exportované."); } catch (err) { console.error("PDF export chyba:", err); alert("Chyba pri exporte PDF."); } }
+    function sendPDF() { if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF || !window.jspdf.jsPDF.API?.autoTable) { alert("PDF knižnica nie je načítaná."); return; } const { jsPDF } = window.jspdf; try { const doc = new jsPDF(); try { doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal'); doc.setFont('Roboto'); } catch(e){} doc.setFontSize(16); doc.text(`Výkaz dochádzky - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20); doc.setFontSize(12); doc.text(`Pracovník: ${employeeName||'-'}`, 14, 28); const cols = ["Deň", "Príchod", "Odchod", "Prestávka(h)", "Poznámka"]; const rows = []; const data = (monthData?.[currentYear]?.[currentMonth]) || []; data.forEach((d, i) => { if (d.start || d.end || d.note) { const day = i+1; const dayN = getDayName(currentYear, currentMonth, day); rows.push([ `${day}(${dayN})`, d.start||'-', d.end||'-', d.breakTime||'0', d.note||'' ]); } }); doc.autoTable({ head: [cols], body: rows, startY: 35, headStyles: { fillColor:[41,128,185], textColor:255, fontSize:9 }, styles: { fontSize:9, overflow:'linebreak'}, columnStyles: { 4:{cellWidth: 60} }, alternateRowStyles:{fillColor:[240,240,240]} }); const finalY = doc.lastAutoTable.finalY || 35; doc.setFontSize(10); const totalHTML = totalSalaryDiv.innerHTML; let daysTxt='N/A'; const m = totalHTML.match(/Dni: (\d+)/); if(m) daysTxt=m[1]; const summary = `Počet odpracovaných dní: ${daysTxt}`; doc.text(summary, 14, finalY + 10); const blob = doc.output('blob'); const fname = `Dochadzka-${employeeName||'pracovnik'}-${currentYear}-${getMonthName(currentMonth)}.pdf`; const file = new File([blob], fname, { type: 'application/pdf' }); if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: `Výkaz ${getMonthName(currentMonth)} ${currentYear}`, text: `Dochádzka pre ${employeeName||'pracovníka'} za ${getMonthName(currentMonth)} ${currentYear}.` }).then(() => showSaveNotification("Pripravené na zdieľanie.")).catch((err) => { if(err.name !== 'AbortError') { console.error('Share chyba:', err); showSaveNotification('Chyba zdieľania.', 'error'); } }); } else { showSaveNotification("Zdieľanie nie je podporované, sťahujem.", "warning"); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display='none'; a.href=url; a.download=fname; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a); } } catch (err) { console.error("PDF send chyba:", err); alert("Chyba pri vytváraní PDF na odoslanie."); } }
 
     // 16. Settings & Changes
-    function changeDecimalPlaces() { const v=parseInt(decimalPlacesSelect.value); if(!isNaN(v) && v>=1 && v<=2){decimalPlaces=v; calculateTotal(); debouncedSaveToLocalStorage();} }
+    function changeDecimalPlaces() { const v = parseInt(decimalPlacesSelect.value); if (!isNaN(v) && v>=1 && v<=2) { decimalPlaces=v; calculateTotal(); debouncedSaveToLocalStorage(); } }
     function updateEmployeeName() { employeeName = employeeNameInput.value; updateWelcomeMessage(); debouncedSaveToLocalStorage(); }
-    function updateSettings() { const hw=parseFloat(hourlyWageInput.value); const tr=parseFloat(taxRateInput.value); let ch=false; if(!isNaN(hw)&&hw>=0&&hourlyWage!==hw){hourlyWage=hw; ch=true;} if(!isNaN(tr)&&tr>=0&&tr<=100){const trd=tr/100; if(taxRate!==trd){taxRate=trd; ch=true;}} if(ch){calculateTotal(); debouncedSaveToLocalStorage();} }
-    function changeMonth() { const m=parseInt(monthSelect.value); if(!isNaN(m) && currentMonth!==m){currentMonth=m; handleMonthYearChange();} }
-    function changeYear() { const y=parseInt(yearSelect.value); if(!isNaN(y) && currentYear!==y){currentYear=y; handleMonthYearChange();} }
-    function handleMonthYearChange() { console.log(`Zmena na ${getMonthName(currentMonth)} ${currentYear}`); localStorage.setItem('currentMonth', currentMonth.toString()); localStorage.setItem('currentYear', currentYear.toString()); loadFromLocalStorage(); if(auth.currentUser)setupFirestoreListener(); }
-    function getDaysInMonth(m) { if(m===undefined||currentYear===undefined)return 31; return new Date(currentYear, m+1, 0).getDate(); }
-    function getMonthName(m) { const n=["Jan","Feb","Mar","Apr","Máj","Jún","Júl","Aug","Sep","Okt","Nov","Dec"]; return n[m]||'?'; }
-    function updateDataSize() { try{let b=0; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i); const v=localStorage.getItem(k); b+=(k?.length||0)+(v?.length||0);} const kb=(b/1024).toFixed(2); const p=Math.min(((b/MAX_DATA_SIZE)*100),100); dataSizeText.textContent=`Lok: ~${kb}KB/${MAX_DATA_SIZE_KB}KB`; dataSizeFill.style.width=`${p}%`; dataSizeFill.style.backgroundColor=p>90?'#f44336':p>70?'#ff9800':'#4CAF50';}catch(e){dataSizeText.textContent="Chyba veľ.";}}
+    function updateSettings() { const hw = parseFloat(hourlyWageInput.value); const tr = parseFloat(taxRateInput.value); let ch = false; if (!isNaN(hw) && hw>=0 && hourlyWage!==hw) { hourlyWage=hw; ch=true; } if (!isNaN(tr) && tr>=0 && tr<=100) { const trd=tr/100; if(taxRate!==trd){ taxRate=trd; ch=true; } } if (ch) { calculateTotal(); debouncedSaveToLocalStorage(); } }
+    function changeMonth() { const m = parseInt(monthSelect.value); if (!isNaN(m) && currentMonth !== m) { currentMonth = m; handleMonthYearChange(); } }
+    function changeYear() { const y = parseInt(yearSelect.value); if (!isNaN(y) && currentYear !== y) { currentYear = y; handleMonthYearChange(); } }
+    function handleMonthYearChange() { console.log(`Zmena na ${getMonthName(currentMonth)} ${currentYear}`); localStorage.setItem('currentMonth', currentMonth.toString()); localStorage.setItem('currentYear', currentYear.toString()); loadFromLocalStorage(); if (auth.currentUser) setupFirestoreListener(); }
+    function getDaysInMonth(m) { if (m===undefined || currentYear===undefined) return 31; return new Date(currentYear, m + 1, 0).getDate(); }
+    function getMonthName(m) { const n=["Jan","Feb","Mar","Apr","Máj","Jún","Júl","Aug","Sep","Okt","Nov","Dec"]; return n[m] || '?'; } // Skrátené názvy
+    function updateDataSize() { try { let bytes = 0; for (let i = 0; i < localStorage.length; i++) { const k=localStorage.key(i); const v=localStorage.getItem(k); bytes += (k?.length||0) + (v?.length||0); } const kb = (bytes / 1024).toFixed(2); const perc = Math.min(((bytes / MAX_DATA_SIZE) * 100), 100); dataSizeText.textContent = `Lok: ~${kb}KB/${MAX_DATA_SIZE_KB}KB`; dataSizeFill.style.width = `${perc}%`; dataSizeFill.style.backgroundColor = perc > 90 ? '#f44336' : perc > 70 ? '#ff9800' : '#4CAF50'; } catch (err) { dataSizeText.textContent = "Chyba veľkosti."; } }
 
     // 17. Backup & Restore
-    function createBackup() { try{const d={workDaysData:localStorage.getItem('workDaysData')||'{}',hourlyWage:localStorage.getItem('hourlyWage')||'10',taxRate:localStorage.getItem('taxRate')||'2',darkMode:localStorage.getItem('darkMode')||'false',decimalPlaces:localStorage.getItem('decimalPlaces')||'1',employeeName:localStorage.getItem('employeeName')||'""',backupVersion:3,backupTimestamp:new Date().toISOString()}; const blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json;charset=utf-8"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`bruno-calc-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showSaveNotification("Záloha OK.");}catch(e){alert("Chyba zálohy.");} }
-    function restoreBackup() { const i=document.createElement('input'); i.type='file'; i.accept='.json,application/json'; i.onchange=(e)=>{const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(ev)=>{try{const b=JSON.parse(ev.target.result); if(b&&b.workDaysData!==undefined&&b.hourlyWage!==undefined&&b.taxRate!==undefined&&b.darkMode!==undefined&&b.decimalPlaces!==undefined&&b.employeeName!==undefined){localStorage.setItem('workDaysData',b.workDaysData); localStorage.setItem('hourlyWage',b.hourlyWage); localStorage.setItem('taxRate',b.taxRate); localStorage.setItem('darkMode',b.darkMode); localStorage.setItem('decimalPlaces',b.decimalPlaces); localStorage.setItem('employeeName',b.employeeName); loadFromLocalStorage(); showSaveNotification("Záloha obnovená."); alert("Záloha obnovená."); saveToLocalStorage();}else{alert("Chyba: zlý formát.");}}catch(err){alert("Chyba spracovania.");}}; r.onerror=()=>alert("Chyba čítania."); r.readAsText(f);}; i.click(); }
+    function createBackup() { try { const d = { workDaysData: localStorage.getItem('workDaysData')||'{}', hourlyWage: localStorage.getItem('hourlyWage')||'10', taxRate: localStorage.getItem('taxRate')||'2', darkMode: localStorage.getItem('darkMode')||'false', decimalPlaces: localStorage.getItem('decimalPlaces')||'1', employeeName: localStorage.getItem('employeeName')||'""', backupVersion: 3, backupTimestamp: new Date().toISOString() }; const blob = new Blob([JSON.stringify(d, null, 2)], {type:"application/json;charset=utf-8"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=`bruno-calc-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showSaveNotification("Záloha vytvorená."); } catch (err) { alert("Chyba pri vytváraní zálohy."); } }
+    function restoreBackup() { const input = document.createElement('input'); input.type='file'; input.accept='.json,application/json'; input.onchange = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { const backup = JSON.parse(ev.target.result); if (backup && backup.workDaysData!==undefined && backup.hourlyWage!==undefined && backup.taxRate!==undefined && backup.darkMode!==undefined && backup.decimalPlaces!==undefined && backup.employeeName!==undefined) { localStorage.setItem('workDaysData', backup.workDaysData); localStorage.setItem('hourlyWage', backup.hourlyWage); localStorage.setItem('taxRate', backup.taxRate); localStorage.setItem('darkMode', backup.darkMode); localStorage.setItem('decimalPlaces', backup.decimalPlaces); localStorage.setItem('employeeName', backup.employeeName); loadFromLocalStorage(); showSaveNotification("Záloha obnovená."); alert("Záloha obnovená."); saveToLocalStorage(); } else { alert("Chyba: Nesprávny formát zálohy."); } } catch (err) { alert("Chyba spracovania zálohy."); } }; reader.onerror = () => alert("Chyba čítania súboru."); reader.readAsText(file); }; input.click(); }
 
     // 18. Inicializácia
-    document.addEventListener('DOMContentLoaded', () => { console.log("DOM Ready. Init calculator."); const ld=document.getElementById('loading-container'); populateYearSelect(); loadFromLocalStorage(); if(ld)ld.classList.add('hidden'); if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').then(r=>console.log('SW OK:',r.scope)).catch(e=>console.error('SW ERR:',e));});}else{console.warn("SW not supported.");} console.log("Init done. Waiting for Auth..."); });
-    function populateYearSelect() { const s=2020, e=new Date().getFullYear()+2; let h=''; for(let y=s;y<=e;y++)h+=`<option value="${y}">${y}</option>`; yearSelect.innerHTML=h; }
+    document.addEventListener('DOMContentLoaded', () => { console.log("DOM Ready. Init calculator."); const loading = document.getElementById('loading-container'); populateYearSelect(); loadFromLocalStorage(); if (loading) loading.classList.add('hidden'); if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./service-worker.js').then(reg=>console.log('SW OK:', reg.scope)).catch(err=>console.error('SW ERR:', err)); }); } else { console.warn("SW not supported."); } console.log("Init done. Waiting for Auth state..."); });
+    function populateYearSelect() { const start = 2020; const end = new Date().getFullYear() + 2; let html = ''; for (let y = start; y <= end; y++) { html += `<option value="${y}">${y}</option>`; } yearSelect.innerHTML = html; }
 
     // --- KONIEC JAVASCRIPTU ---
   </script>
