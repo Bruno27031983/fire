@@ -367,7 +367,7 @@
     function getFirstName(fullName) { if (!fullName || typeof fullName !== 'string') { return ''; } const trimmedName = fullName.trim(); if (!trimmedName) { return ''; } const parts = trimmedName.split(' '); return parts[0]; }
     function updateWelcomeMessage() { const welcomeElement = document.getElementById('welcomeMessage'); if (!welcomeElement) return; const firstName = getFirstName(employeeName); if (firstName) { welcomeElement.textContent = `Vitaj späť, ${firstName}! 👋`; } else { welcomeElement.textContent = ''; } }
 
-    // 7. Funkcia na nastavenie Firestore Listenera - **UPRAVENÉ pre DETAILNÉ LOGOVANIE**
+    // 7. Funkcia na nastavenie Firestore Listenera - **S LOGOVANÍM**
     function setupFirestoreListener() {
         if (firestoreListenerUnsubscribe) { console.log("Odhlasujem predchádzajúci Firestore listener."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
         const uid = auth.currentUser?.uid; if (!uid) { console.log("setupFirestoreListener: Nikto nie je prihlásený."); return; }
@@ -609,7 +609,7 @@
     }
 
 
-    // 8. Funkcia na ukladanie do Firebase - **UPRAVENÉ pre DETAILNÉ LOGOVANIE**
+    // 8. Funkcia na ukladanie do Firebase - **S LOGOVANÍM**
     async function saveToFirebase() {
         const currentUser = auth.currentUser;
         if (!currentUser) {
@@ -654,7 +654,7 @@
     }
 
 
-    // 9. Funkcia na ukladanie do Local Storage - Nezmenené (volá upravené saveToFirebase)
+    // 9. Funkcia na ukladanie do Local Storage - Nezmenené
     function saveToLocalStorage() { try { if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; if (!monthData[currentYear][currentMonth]) { monthData[currentYear][currentMonth] = []; console.warn(`saveToLocalStorage: Inicializované prázdne pole pre ${currentYear}-${currentMonth}, lebo chýbalo.`); } localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage)); localStorage.setItem('taxRate', JSON.stringify(taxRate * 100)); localStorage.setItem('darkMode', JSON.stringify(document.body.classList.contains('dark-mode'))); localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces)); localStorage.setItem('employeeName', JSON.stringify(employeeName)); localStorage.setItem('currentMonth', currentMonth.toString()); localStorage.setItem('currentYear', currentYear.toString()); const serializedMonthData = JSON.stringify(monthData); const bytes = new Blob([serializedMonthData]).size; if (bytes > MAX_DATA_SIZE * 0.9) { console.warn(`Veľkosť dát ('workDaysData') v localStorage sa blíži k limitu: ${bytes} bajtov`); } if (bytes > MAX_DATA_SIZE) { alert(`Prekročili ste maximálnu veľkosť dát (~${MAX_DATA_SIZE_KB} KB) pre dáta mesiacov v localStorage. Ukladanie zlyhalo.`); showSaveNotification("Chyba: Lokálne dáta sú príliš veľké!", "error"); return; } localStorage.setItem('workDaysData', serializedMonthData); updateDataSize(); saveToFirebase(); if (!navigator.onLine) { showSaveNotification("Offline: Zmeny uložené lokálne", "warning"); } } catch (error) { console.error('Chyba pri ukladaní (lokálne/spustení Firebase save):', error); showSaveNotification("Kritická chyba pri ukladaní!", "error"); } }
 
     // 10. Funkcia na načítanie z Local Storage - Nezmenené
@@ -817,14 +817,14 @@
     }
     // --- KONIEC NOVÝCH FUNKCIÍ PRE POZNÁMKY ---
 
-    // Input handling funkcie - **UPRAVENÉ pre DETAILNÉ LOGOVANIE vo formatInput a updateMonthDataFromInput**
+    // Input handling funkcie - **S LOGOVANÍM vo formatInput a updateMonthDataFromInput**
     function processInputCompletion(inputId, nextId) { console.log(`processInputCompletion: Spustené pre ${inputId}, ďalší: ${nextId}`); const inputElement = document.getElementById(inputId); if (!inputElement && !(inputId === 'reset-all' || inputId.startsWith('reset-') || inputId === 'settings-change' || inputId === 'restore-backup' || inputId.startsWith('note-')) ) { console.warn(`processInputCompletion: Element ${inputId} nenájdený.`); return; } calculateTotal(); saveToLocalStorage(); if (inputElement && inputElement.type === 'tel') { if (inputElement.value.length === 5 && isTimeValid(inputElement.value)) { moveNext(inputElement, nextId); } } else if (inputElement && inputElement.type === 'number' && inputId.startsWith('break-')) { moveNext(inputElement, nextId); } else if (inputElement && inputElement.tagName === 'TEXTAREA' && inputId.startsWith('note-')) { /* Pri poznámke nepresúvame fokus automaticky */ } }
     const debouncedProcessInputCompletion = debounce(processInputCompletion, 500);
     function isTimeValid(timeStr) { const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; return timeRegex.test(timeStr); }
     function handleInput(input, nextId, day) { formatInput(input); updateMonthDataFromInput(input, day); calculateRow(day); debouncedProcessInputCompletion(input.id, nextId); }
     function handleBreakInput(day) { const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); updateMonthDataFromInput(input, day); calculateRow(day); const nextDay = day + 1; let nextInputElementId = null; if (nextDay <= getDaysInMonth(currentMonth)) { nextInputElementId = `start-${currentYear}-${currentMonth}-${nextDay}`; } debouncedProcessInputCompletion(input.id, nextInputElementId); }
 
-    // ===== ZAČIATOK updateMonthDataFromInput s LOGOVANÍM =====
+    // ===== ZAČIATOK updateMonthDataFromInput s FINÁLNYM LOGOVANÍM =====
     function updateMonthDataFromInput(input, day) {
         if (!input) return;
         const dayIndex = day - 1;
@@ -834,9 +834,9 @@
         if (fieldId.startsWith('start-')) field = 'start';
         else if (fieldId.startsWith('end-')) field = 'end';
         else if (fieldId.startsWith('break-')) field = 'breakTime';
-        else if (fieldId.startsWith('note-')) field = 'note'; // <<< Rozpoznanie poznámky
+        else if (fieldId.startsWith('note-')) field = 'note';
 
-        const value = input.value;
+        const value = input.value; // Načítaj aktuálnu hodnotu z inputu
 
         if (field !== 'unknown') {
             if (!monthData) monthData = {};
@@ -844,30 +844,43 @@
             if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
 
             // Zabezpeč, že pole má dostatok záznamov (s novou štruktúrou)
-            while (monthData[currentYear][currentMonth].length <= dayIndex) {
-                monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' }); // <<< Inicializácia s note
+            // Pridávaj len ak je dayIndex väčší alebo rovný aktuálnej dĺžke
+            while (dayIndex >= monthData[currentYear][currentMonth].length) {
+                 console.log(`updateMonthDataFromInput: Rozširujem pole monthData pre ${currentYear}-${currentMonth}, lebo index ${dayIndex} je mimo rozsahu (dĺžka ${monthData[currentYear][currentMonth].length}).`);
+                 monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' });
             }
+
 
             // Aktualizuj alebo vytvor záznam pre deň
             if (!monthData[currentYear][currentMonth][dayIndex]) {
-                 console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData. Vytváram nový.`);
+                 console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData aj po rozšírení. Vytváram nový núdzovo.`);
                  monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' }; // <<< Inicializácia s note
             }
 
-            // Aktualizuj konkrétne pole LEN ak sa hodnota zmenila
-            const currentValue = monthData[currentYear]?.[currentMonth]?.[dayIndex]?.[field]; // Získaj aktuálnu hodnotu pre log
+            const currentValue = monthData[currentYear]?.[currentMonth]?.[dayIndex]?.[field];
+
             if (currentValue !== value) {
-                // ===== PRIDANÝ LOG SEM =====
                 console.log(`%cupdateMonthDataFromInput: Pokus o zápis do monthData[${currentYear}][${currentMonth}][${dayIndex}].${field}. Stará hodnota: "${currentValue}", Nová hodnota: "${value}"`, 'color: #e67e22;');
-                // ==========================
+
+                // Samotné priradenie
                 monthData[currentYear][currentMonth][dayIndex][field] = value;
+
+                // ===== NOVÝ KONTROLNÝ LOG HNEĎ PO PRIRADENÍ =====
+                const valueAfterAssignment = monthData[currentYear][currentMonth][dayIndex][field];
+                if (valueAfterAssignment === value) {
+                    console.log(`%cupdateMonthDataFromInput: KONTROLA - Hodnota v monthData úspešne nastavená na: "${valueAfterAssignment}"`, 'color: green; font-weight: bold;');
+                } else {
+                    console.error(`%cupdateMonthDataFromInput: KONTROLA ZLYHALA! - Hodnota v monthData je: "${valueAfterAssignment}" namiesto očakávanej "${value}"!`, 'color: red; font-weight: bold;');
+                }
+                // ================================================
+
             }
 
         } else {
             console.warn("updateMonthDataFromInput: Nerozpoznané pole pre input ID:", fieldId);
         }
     }
-    // ===== KONIEC updateMonthDataFromInput s LOGOVANÍM =====
+    // ===== KONIEC updateMonthDataFromInput s FINÁLNYM LOGOVANÍM =====
 
 
     // ===== ZAČIATOK formatInput s LOGOVANÍM =====
@@ -967,15 +980,17 @@
             if (!monthData) monthData = {};
             if (!monthData[currentYear]) monthData[currentYear] = {};
             if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
-            while (monthData[currentYear][currentMonth].length <= dayIndex) {
-                // Inicializuj s prázdnou poznámkou
-                monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' });
+            // Zabezpečíme, že pole existuje do indexu dayIndex
+            while (dayIndex >= monthData[currentYear][currentMonth].length) {
+                 monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' });
             }
+
             if (monthData[currentYear][currentMonth][dayIndex]) {
                 // Resetuj celý záznam vrátane poznámky
                 monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' };
+                 console.log(`resetRow: Resetované dáta v monthData pre deň ${dayIndex}`);
             } else {
-                console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`);
+                console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData aj po prípadnom rozšírení.`);
             }
             debouncedProcessInputCompletion(`reset-${day}`, null); // Spustí uloženie
         } else {
