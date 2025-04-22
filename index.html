@@ -65,7 +65,7 @@
 
     /* --- ZMENENÉ/PRIDANÉ ŠTÝLY PRE LOGIN/LOGOUT TLAČIDLO --- */
     #logout-btn {
-        /* Štandardný štýl (keď je na odhlásenie) preberie z .reset-btn */
+        /* Štýl preberie z .reset-btn alebo .login-prompt */
     }
     #logout-btn.login-prompt {
         background-color: #4CAF50; /* Zelená ako export */
@@ -82,8 +82,8 @@
     #logout-btn.login-prompt.dark-mode:hover {
          background-color: #2e7d32; /* Ešte tmavšia zelená v dark mode pri hover */
     }
-    /* Štýl pre odhlasovacie tlačidlo (ostáva červený) */
-    #logout-btn.reset-btn { /* Keď slúži na odhlásenie, použije štýl reset-btn */
+    /* Štýl pre odhlasovacie tlačidlo (červený) */
+    #logout-btn.reset-btn {
          background-color: #f44336;
     }
     #logout-btn.reset-btn:hover {
@@ -96,7 +96,6 @@
          background-color: #b71c1c;
     }
     /* --- KONIEC ZMIEN ŠTÝLOV PRE LOGIN/LOGOUT TLAČIDLO --- */
-
 
     #totalSalary { font-size: 18px; font-weight: bold; text-align: center; margin-top: 20px; padding: 10px; background-color: #e6f3ff; border-radius: 5px; }
     #dataSizeContainer { margin-top: 10px; text-align: center; }
@@ -153,8 +152,8 @@
     #loading-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease-out; text-align: center; padding: 20px; }
     /* Zmenený štýl pre H1 v loading containery */
     #loading-container h1 {
-        font-size: 1.5em; /* Prípadne upravte veľkosť */
-        color: #555; /* Prípadne upravte farbu */
+        font-size: 1.5em;
+        color: #555;
         background: none; /* Odstránenie gradientu */
         -webkit-background-clip: unset;
         background-clip: unset;
@@ -331,7 +330,7 @@
     }
     function closeAuthForm() { authContainer.style.display = 'none'; }
 
-    // 5. Auth State Change Listener - Nezmenené (logika z predchádzajúcej verzie)
+    // 5. Auth State Change Listener - Nezmenené (obsahuje logiku z predchádzajúcich verzií)
     auth.onAuthStateChanged(user => {
         console.log("onAuthStateChanged: Stav zistený.", user ? `Používateľ: ${user.email}` : "Žiadny používateľ.");
         const wasLoggedIn = isLoggedIn;
@@ -382,8 +381,8 @@
             logoutBtn.style.display = 'block';
             logoutBtn.onclick = logout;
             logoutBtn.textContent = `Odhlásiť sa (${user.email.substring(0, user.email.indexOf('@') || 10)}...)`;
-            logoutBtn.classList.remove('login-prompt'); // Odstráni zelenú triedu
-            logoutBtn.classList.add('reset-btn'); // Pridá červenú triedu
+            logoutBtn.classList.remove('login-prompt');
+            logoutBtn.classList.add('reset-btn');
 
             console.log("Používateľ prihlásený, nastavujem Firebase listener...");
             setupFirestoreListener();
@@ -399,8 +398,8 @@
                 authContainer.style.display = 'block';
                 authContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             };
-            logoutBtn.classList.remove('reset-btn'); // Odstráni červenú triedu
-            logoutBtn.classList.add('login-prompt'); // Pridá zelenú triedu
+            logoutBtn.classList.remove('reset-btn');
+            logoutBtn.classList.add('login-prompt');
             console.log("Používateľ nie je prihlásený. Kalkulačka beží v lokálnom režime.");
         }
         applyDarkMode(document.body.classList.contains('dark-mode'));
@@ -419,21 +418,154 @@
     // 8. Funkcia na ukladanie do Firebase - Nezmenené
     async function saveToFirebase() { /* ... kód saveToFirebase ... */ }
 
-    // 9. Funkcia na ukladanie do Local Storage - Nezmenené (už obsahuje vylepšenia)
+    // 9. Funkcia na ukladanie do Local Storage - Nezmenené (obsahuje vylepšenia)
     function saveToLocalStorage() { /* ... kód saveToLocalStorage ... */ }
 
     // 10. Funkcia na načítanie z Local Storage - Nezmenené
     function loadFromLocalStorage() { /* ... kód loadFromLocalStorage ... */ }
 
-    // 11. Funkcia na aktualizáciu UI - Nezmenené
-    function updateUIFromLoadedData(darkModeValue) { /* ... kód updateUIFromLoadedData ... */ }
+    // 11. Funkcia na aktualizáciu UI - *** UPRAVENÉ s logovaním ***
+    function updateUIFromLoadedData(darkModeValue) {
+        console.log(`updateUIFromLoadedData: Spúšťa sa pre ${getMonthName(currentMonth)} ${currentYear}`); // LOGOVANIE
+        try {
+             if (document.activeElement !== hourlyWageInput) hourlyWageInput.value = hourlyWage;
+             if (document.activeElement !== taxRateInput) taxRateInput.value = taxRate * 100;
+             if (document.activeElement !== decimalPlacesSelect) decimalPlacesSelect.value = decimalPlaces;
+             if (document.activeElement !== employeeNameInput) employeeNameInput.value = employeeName;
+
+             if (monthSelect.value != currentMonth) monthSelect.value = currentMonth;
+             if (yearSelect.querySelector(`option[value="${currentYear}"]`)) {
+                 if (yearSelect.value != currentYear) yearSelect.value = currentYear;
+             } else {
+                 console.warn(`Rok ${currentYear} nenájdený v selecte pri updateUI.`);
+                 yearSelect.value = new Date().getFullYear(); currentYear = parseInt(yearSelect.value);
+             }
+
+            // *** LOGOVANIE PRED VOLANÍM createTable ***
+            console.log("updateUIFromLoadedData: Chystám sa volať createTable()...");
+            createTable(); // Vytvorí štruktúru
+            // *** LOGOVANIE PO VOLANÍ createTable ***
+            console.log("updateUIFromLoadedData: createTable() bola zavolaná.");
+
+            const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+            console.log(`updateUIFromLoadedData: Počet záznamov v monthData pre plnenie UI: ${dataForCurrentMonth.length}`);
+            if (dataForCurrentMonth.length > 0) {
+                console.log("updateUIFromLoadedData: Začínam plniť riadky dátami..."); // LOGOVANIE
+            }
+            dataForCurrentMonth.forEach((day, index) => {
+                const i = index + 1;
+                const startElement = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`);
+                const endElement = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`);
+                const breakElement = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`);
+                const noteElement = document.getElementById(`note-${currentYear}-${currentMonth}-${i}`);
+
+                if (startElement && endElement && breakElement && noteElement) {
+                    startElement.value = day.start || '';
+                    endElement.value = day.end || '';
+                    breakElement.value = day.breakTime || '';
+                    noteElement.value = day.note || '';
+                    // Calculate row sa volá až po naplnení všetkých riadkov pre efektivitu
+                    // calculateRow(i);
+                } else {
+                    console.error(`Kritická chyba: Elementy pre deň ${i} v updateUIFromLoadedData neboli nájdené po createTable!`);
+                }
+            });
+             if (dataForCurrentMonth.length > 0) {
+                 console.log("updateUIFromLoadedData: Dokončené plnenie riadkov. Prepočítavam..."); // LOGOVANIE
+             }
+             // Prepočítame všetky riadky naraz po ich naplnení
+             const rows = workDays.querySelectorAll('tr');
+             rows.forEach((row, index) => calculateRow(index + 1));
+
+
+            calculateTotal();
+            updateDataSize();
+            applyDarkMode(darkModeValue);
+            updateWelcomeMessage();
+            console.log("updateUIFromLoadedData: UI aktualizované."); // LOGOVANIE
+        } catch (error) {
+            console.error("Chyba počas aktualizácie UI:", error);
+            showSaveNotification("Chyba pri prekresľovaní UI!", "error");
+        }
+    }
+
 
     // 12. Funkcia pre aplikovanie Dark Mode - Nezmenené
     function applyDarkMode(isDark) { /* ... kód applyDarkMode ... */ }
 
-    // 13) Vytváranie tabuľky a súvisiace funkcie - Nezmenené (debounce čas 400ms)
-    function getDayName(year, month, day) { /* ... kód getDayName ... */ }
-    function createTable() { /* ... kód createTable ... */ }
+    // 13) Vytváranie tabuľky a súvisiace funkcie - *** UPRAVENÉ s logovaním a kontrolou ***
+    function getDayName(year, month, day) { const daysOfWeek = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"]; return daysOfWeek[new Date(year, month, day).getDay()]; }
+
+    // Upravená funkcia getDaysInMonth
+    function getDaysInMonth(month) {
+        if (typeof month !== 'number' || month < 0 || month > 11 || typeof currentYear !== 'number' || currentYear < 1970) {
+            console.error(`getDaysInMonth: Neplatný vstupný mesiac (${month}) alebo rok (${currentYear}). Vraciam 0.`);
+            return 0;
+        }
+        return new Date(currentYear, month + 1, 0).getDate();
+    }
+
+    // Upravená funkcia createTable
+    function createTable() {
+        console.log("createTable: Spúšťa sa...");
+        workDays.innerHTML = '';
+
+        const tableHead = document.querySelector('table thead tr');
+        if (tableHead && !tableHead.querySelector('.th-note')) {
+            const noteTh = document.createElement('th'); noteTh.textContent = 'Poznámka'; noteTh.classList.add('th-note');
+            const lastTh = tableHead.lastElementChild; tableHead.insertBefore(noteTh, lastTh);
+        }
+
+        const daysInMonth = getDaysInMonth(currentMonth);
+        console.log(`createTable: Aktuálny mesiac=${currentMonth}, rok=${currentYear}, počet dní=${daysInMonth}`);
+
+        if (typeof daysInMonth !== 'number' || daysInMonth <= 0 || isNaN(daysInMonth)) {
+             console.error(`createTable: Neplatný počet dní v mesiaci (${daysInMonth}). Tabuľka nebude vytvorená.`);
+             workDays.innerHTML = '<tr><td colspan="9" style="text-align:center; color: red; padding: 20px;">Chyba: Nepodarilo sa načítať dni pre tento mesiac. Skontrolujte konzolu pre viac detailov.</td></tr>';
+             return;
+        }
+
+        const today = new Date();
+        const currentDayOfMonth = today.getDate(); const currentMonthIndex = today.getMonth(); const currentYearValue = today.getFullYear();
+
+        console.log(`createTable: Začínam vytvárať ${daysInMonth} riadkov...`);
+        for (let i = 1; i <= daysInMonth; i++) {
+            const row = document.createElement('tr');
+            if (i === currentDayOfMonth && currentMonth === currentMonthIndex && currentYear === currentYearValue) { row.classList.add('current-day'); }
+            const dayName = getDayName(currentYear, currentMonth, i);
+            const baseId = `${currentYear}-${currentMonth}-${i}`;
+            const startId = `start-${baseId}`, endId = `end-${baseId}`, breakId = `break-${baseId}`;
+            const totalId = `total-${baseId}`, grossId = `gross-${baseId}`, netId = `net-${baseId}`;
+            const noteToggleId = `note-toggle-${baseId}`, noteContainerId = `note-container-${baseId}`, noteTextareaId = `note-${baseId}`;
+
+            try {
+                row.innerHTML = `
+                    <td>Deň ${i} (${dayName})</td>
+                    <td><input type="tel" id="${startId}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, '${endId}', ${i})"></td>
+                    <td><input type="tel" id="${endId}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, '${breakId}', ${i})"></td>
+                    <td><input type="number" id="${breakId}" min="0" step="0.5" placeholder="prestávka" oninput="handleBreakInput(${i})"></td>
+                    <td id="${totalId}">0h 0m (${(0).toFixed(decimalPlaces || 1)} h)</td>
+                    <td><input type="number" id="${grossId}" min="0" step="0.01" placeholder="Hrubá Mzda" readonly></td>
+                    <td><input type="number" id="${netId}" min="0" step="0.01" placeholder="Čistá Mzda" readonly></td>
+                    <td>
+                        <button id="${noteToggleId}" class="toggle-note-btn" onclick="toggleNote(${i})">Poznámka</button>
+                        <div id="${noteContainerId}" class="note-container">
+                            <textarea id="${noteTextareaId}" class="note-textarea" placeholder="Zadajte poznámku..." oninput="handleNoteInput(this, ${i})"></textarea>
+                        </div>
+                    </td>
+                    <td><button class="btn reset-btn" onclick="resetRow(${i})">Vynulovať</button></td>
+                `;
+            } catch (e) {
+                 console.error(`Chyba pri vytváraní HTML pre riadok ${i}:`, e);
+                 row.innerHTML = `<td colspan="9" style="color:red;">Chyba pri vykreslení riadku ${i}</td>`;
+            }
+            workDays.appendChild(row);
+        }
+        applyDarkMode(document.body.classList.contains('dark-mode'));
+        console.log(`createTable: Úspešne vytvorených ${daysInMonth} riadkov.`);
+    }
+
+    // Ostatné funkcie v sekcii 13 - Nezmenené
     function toggleNote(day) { /* ... kód toggleNote ... */ }
     function handleNoteInput(textarea, day) { updateMonthDataFromInput(textarea, day); debouncedProcessInputCompletion(textarea.id, null); }
     function processInputCompletion(inputId, nextId) { /* ... kód processInputCompletion ... */ }
@@ -462,7 +594,7 @@
     function changeMonth() { /* ... kód changeMonth ... */ }
     function changeYear() { /* ... kód changeYear ... */ }
     function handleMonthYearChange() { /* ... kód handleMonthYearChange ... */ }
-    function getDaysInMonth(month) { /* ... kód getDaysInMonth ... */ }
+    // getDaysInMonth je už upravená vyššie
     function getMonthName(month) { /* ... kód getMonthName ... */ }
     function updateDataSize() { /* ... kód updateDataSize ... */ }
     function toggleDarkMode() { /* ... kód toggleDarkMode ... */ }
@@ -471,7 +603,7 @@
     function createBackup() { /* ... kód createBackup ... */ }
     function restoreBackup() { /* ... kód restoreBackup ... */ }
 
-    // 18) Inicializácia - Nezmenené (už obsahuje listenery pre ukladanie)
+    // 18) Inicializácia - Nezmenené (obsahuje listenery pre ukladanie)
      document.addEventListener('DOMContentLoaded', () => {
          console.log("DOM načítaný, inicializujem...");
          populateYearSelect();
