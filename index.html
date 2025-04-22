@@ -454,7 +454,7 @@
             if (docSnap.metadata.hasPendingWrites) {
                 console.log("Listener: Detekovaná lokálna zmena (pending write). Preskakujem aktualizáciu UI.");
                  // Voliteľne môžeme aktualizovať monthData aj tak, aby bolo konzistentné
-                 if (docSnap.exists()) {
+                 if (docSnap.exists( {
                      const data = docSnap.data(); const firebaseDaysData = data.days || [];
                      if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
                      monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({ start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || '' }));
@@ -462,7 +462,7 @@
                 return;
             }
 
-            if (docSnap.exists()) {
+            if (docSnap.exists( {
                 const data = docSnap.data();
                 console.log(`Listener: Dokument ${docPath} existuje (${source}), načítané dáta:`, data);
                 try {
