@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bruno's Calculator s Firebase Auth (TEST - Bez Debounce)</title> <link rel="manifest" href="manifest.json">
+  <title>Bruno's Calculator s Firebase Auth (TEST - Bez Debounce + Opt Listener)</title> <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
@@ -361,12 +361,13 @@
     });
 
     // 6. Utility funkcie (debounce, showSaveNotification, getFirstName, updateWelcomeMessage) - Nezmenené
+    // Funkcia debounce tu už nie je potrebná, ale necháme ju pre prípadné budúce použitie
     function debounce(func, wait) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), wait); }; }
     function showSaveNotification(message, type = 'success') { const notification = document.getElementById('saveNotification'); notification.textContent = message; notification.className = 'show'; if (type === 'error') { notification.classList.add('error'); } else if (type === 'warning') { notification.classList.add('warning'); } notification.classList.add('show'); setTimeout(() => notification.classList.remove('show'), 3000); }
     function getFirstName(fullName) { if (!fullName || typeof fullName !== 'string') { return ''; } const trimmedName = fullName.trim(); if (!trimmedName) { return ''; } const parts = trimmedName.split(' '); return parts[0]; }
     function updateWelcomeMessage() { const welcomeElement = document.getElementById('welcomeMessage'); if (!welcomeElement) return; const firstName = getFirstName(employeeName); if (firstName) { welcomeElement.textContent = `Vitaj späť, ${firstName}! 👋`; } else { welcomeElement.textContent = ''; } }
 
-    // 7. Funkcia na nastavenie Firestore Listenera - **S LOGOVANÍM**
+    // 7. Funkcia na nastavenie Firestore Listenera - **S LOGOVANÍM a OPTIMALIZÁCIOU**
     function setupFirestoreListener() {
         if (firestoreListenerUnsubscribe) { console.log("Odhlasujem predchádzajúci Firestore listener."); firestoreListenerUnsubscribe(); firestoreListenerUnsubscribe = null; }
         const uid = auth.currentUser?.uid; if (!uid) { console.log("setupFirestoreListener: Nikto nie je prihlásený."); return; }
@@ -410,13 +411,13 @@
                     const data = docSnap.data(); const firebaseDaysData = data.days || [];
                     if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
                     // Uloženie do monthData aj s poznámkou (aj keď UI neaktualizujeme hneď)
+                    // Mali by sme aktualizovať monthData len ak sa líši? Zatiaľ nechávame takto.
                     monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
                         start: day.start || '',
                         end: day.end || '',
                         breakTime: day.breakTime || '',
-                        note: day.note || '' // <<< Pridané note
+                        note: day.note || ''
                     }));
-                    // localStorage.setItem('workDaysData', JSON.stringify(monthData)); // Lokálne ukladanie rieši saveToLocalStorage
                     console.log("Listener (Local Write): monthData aktualizované na základe lokálneho snapshotu.");
                 } else {
                      console.log("Listener (Local Write): Dokument počas lokálneho zápisu neexistuje (napr. pri prvom vytvorení).");
@@ -439,7 +440,8 @@
                     const firebaseDarkMode = data.darkMode ?? document.body.classList.contains('dark-mode');
                     const firebaseDaysData = data.days || [];
 
-                    // Aktualizuj globálne premenné z Firebase
+                    // Aktualizuj globálne premenné z Firebase (ak sa zmenili)
+                    // Toto by sa mohlo optimalizovať, aby sa neaktualizovali vždy
                     hourlyWage = firebaseHourlyWage;
                     taxRate = firebaseTaxRatePercent / 100;
                     decimalPlaces = firebaseDecimalPlaces;
@@ -452,6 +454,8 @@
                     if (document.activeElement !== employeeNameInput) { employeeNameInput.value = employeeName; }
 
                     // Priprav monthData na základe Firebase
+                    // Znova, toto by sa malo robiť len ak sa dáta líšia od aktuálnych monthData?
+                    // Pre jednoduchosť zatiaľ nechávame prepis vždy pri snapshot zo servera/cache.
                     if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
                     monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
                         start: day.start || '',
@@ -462,20 +466,24 @@
                     console.log(`Listener: monthData pre ${currentYear}-${currentMonth} aktualizované z Firebase. Počet dní: ${monthData[currentYear][currentMonth].length}`);
 
                     // Ulož aktuálne nastavenia a dáta do localStorage (ako potvrdenie z Firebase)
+                    // TOTO JE MOŽNO ZBYTOČNÉ - localStorage by mal byť aktuálny z lokálnych zmien
+                    // Ak by sme chceli zabezpečiť konzistenciu, tak áno, ale môže to byť neefektívne.
+                    // Zatiaľ zakomentujeme, aby sme znížili zápisy:
+                    /*
                     localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage));
                     localStorage.setItem('taxRate', JSON.stringify(taxRate * 100));
                     localStorage.setItem('darkMode', JSON.stringify(firebaseDarkMode));
                     localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
                     localStorage.setItem('employeeName', JSON.stringify(employeeName));
-                    // Ukladaj workDaysData len ak sa naozaj zmenili oproti predchádzajúcemu stavu? Zatiaľ ukladáme vždy.
                     localStorage.setItem('workDaysData', JSON.stringify(monthData));
-                    console.log("Listener: Dáta z Firebase uložené do localStorage.");
+                    console.log("Listener: Dáta z Firebase (znovu)uložené do localStorage.");
+                    */
 
 
-                    // --- ROZŠÍRENÉ LOGOVANIE POČAS AKTUALIZÁCIE UI ---
-                    console.log("Listener: Kontrolujem a aktualizujem riadky tabuľky...");
+                    // --- OPTIMALIZOVANÁ AKTUALIZÁCIA UI ---
+                    console.log("Listener: Kontrolujem a aktualizujem riadky tabuľky (optimalizovane)...");
                     const daysInMonth = getDaysInMonth(currentMonth);
-                    // const currentDaysData = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || []; // Načítané vyššie
+                    let anyRowRecalculated = false; // Sledujeme, či sa vôbec niečo prepočítalo
 
                     for (let i = 1; i <= daysInMonth; i++) {
                         const dayIndex = i - 1;
@@ -498,15 +506,18 @@
                             const newBreak = firebaseDayData.breakTime || '';
                             const newNote = firebaseDayData.note || '';
 
+                            let rowUpdatedByListener = false; // Príznak pre tento konkrétny riadok
+
                             // Kontrola a logovanie pre START
                             if (startElement.value !== newStart) {
                                 if (activeElementId === startId) {
                                     console.warn(`%cListener: CHCEM aktualizovať ${startId} na "${newStart}", ALE MÁ FOKUS. Preskakujem update. (Aktuálna hodnota: "${startElement.value}")`, "color: red;");
                                 } else {
-                                    // Loguj len ak sa hodnota líši od toho, čo prišlo
+                                    // Dvojitá kontrola hodnoty tesne pred zápisom
                                     if (startElement.value !== newStart) {
                                         console.log(`Listener: Aktualizujem ${startId} z "${startElement.value}" na "${newStart}" (Firestore)`);
                                         startElement.value = newStart;
+                                        rowUpdatedByListener = true; // Označ, že riadok bol zmenený
                                     }
                                 }
                             }
@@ -515,25 +526,26 @@
                                 if (activeElementId === endId) {
                                     console.warn(`%cListener: CHCEM aktualizovať ${endId} na "${newEnd}", ALE MÁ FOKUS. Preskakujem update. (Aktuálna hodnota: "${endElement.value}")`, "color: red;");
                                 } else {
-                                     if (endElement.value !== newEnd) {
+                                     if (endElement.value !== newEnd) { // Dvojitá kontrola
                                         console.log(`Listener: Aktualizujem ${endId} z "${endElement.value}" na "${newEnd}" (Firestore)`);
                                         endElement.value = newEnd;
+                                        rowUpdatedByListener = true; // Označ, že riadok bol zmenený
                                     }
                                 }
                             }
                              // Kontrola a logovanie pre BREAK (podobne)
-                             // Porovnávame stringy, keďže breakElement.value je string
                              if (breakElement.value !== newBreak) {
                                 if (activeElementId === breakId) {
                                     console.warn(`%cListener: CHCEM aktualizovať ${breakId} na "${newBreak}", ALE MÁ FOKUS. Preskakujem update. (Aktuálna hodnota: "${breakElement.value}")`, "color: red;");
                                 } else {
-                                     if (breakElement.value !== newBreak) {
+                                     if (breakElement.value !== newBreak) { // Dvojitá kontrola
                                         console.log(`Listener: Aktualizujem ${breakId} z "${breakElement.value}" na "${newBreak}" (Firestore)`);
                                         breakElement.value = newBreak;
+                                        rowUpdatedByListener = true; // Označ, že riadok bol zmenený
                                     }
                                 }
                             }
-                             // Kontrola a logovanie pre NOTE (podobne)
+                             // Kontrola a logovanie pre NOTE (Poznámka nespúšťa prepočet)
                              if (noteElement.value !== newNote) {
                                 if (activeElementId === noteId) {
                                     console.warn(`%cListener: CHCEM aktualizovať ${noteId} na "${newNote.substring(0,20)}...", ALE MÁ FOKUS. Preskakujem update. (Aktuálna hodnota: "${noteElement.value.substring(0,20)}...")`, "color: red;");
@@ -541,25 +553,39 @@
                                     if (noteElement.value !== newNote) {
                                         console.log(`Listener: Aktualizujem ${noteId} z "${noteElement.value.substring(0,20)}..." na "${newNote.substring(0,20)}..." (Firestore)`);
                                         noteElement.value = newNote;
+                                        // rowUpdatedByListener = false; // Neoznačujeme, lebo poznámka nespúšťa prepočet mzdy
                                     }
                                 }
                             }
 
 
-                            // Prepočítaj riadok PO aktualizácii hodnôt z Firebase
-                            calculateRow(i);
+                            // === OPTIMALIZÁCIA: Prepočítaj riadok LEN AK sa zmenila hodnota relevantná pre výpočet ===
+                            if (rowUpdatedByListener) {
+                                 console.log(`%cListener: Prepočítavam riadok ${i}, lebo bol aktualizovaný listenerom (start/end/break).`, 'color: magenta;');
+                                 calculateRow(i);
+                                 anyRowRecalculated = true; // Označ, že sme aspoň jeden riadok prepočítali
+                            }
+                            // =======================================================================================
 
                         } else {
                            // console.warn(`Listener: Elementy pre deň ${i} neboli nájdené pri aktualizácii UI.`); // Odkomentuj ak treba
                         }
-                    }
+                    } // Koniec for cyklu pre dni
+
                      console.log("Listener: Aktualizácia riadkov tabuľky dokončená.");
 
-                    // Aplikuj ostatné UI zmeny
-                    calculateTotal();
-                    applyDarkMode(firebaseDarkMode); // Použi hodnotu z Firebase
+                    // Prepočítaj celkový súčet len ak sa prepočítal aspoň jeden riadok
+                    if (anyRowRecalculated) {
+                        console.log("%cListener: Prepočítavam celkový súčet (calculateTotal), lebo aspoň jeden riadok bol prepočítaný.", 'color: magenta;');
+                        calculateTotal();
+                    } else {
+                         console.log("Listener: Celkový súčet (calculateTotal) sa neprepočítava, lebo žiadny riadok nebol listenerom zmenený a prepočítaný.");
+                    }
+
+                    // Aplikuj ostatné UI zmeny (Dark Mode, Welcome Msg) - tieto môžeme robiť vždy
+                    applyDarkMode(firebaseDarkMode);
                     updateWelcomeMessage();
-                    updateDataSize(); // Aktualizuj veľkosť dát po uložení
+                    updateDataSize(); // Aktualizuj veľkosť dát
 
                     if (!docSnap.metadata.fromCache) {
                        console.log("%cListener: Dáta prijaté priamo zo SERVERA.", "font-weight: bold;");
@@ -616,32 +642,31 @@
             return;
         }
         try {
+            // Získaj aktuálne dáta z globálnej premennej monthData
             const currentMonthWorkData = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
-            console.log(`saveToFirebase: Pripravujem dáta pre ${currentYear}-${currentMonth}. Počet záznamov v poli 'days': ${currentMonthWorkData.length}.`); // Upresnený log
+            console.log(`saveToFirebase: Pripravujem dáta pre ${currentYear}-${currentMonth}. Počet záznamov v poli 'days': ${currentMonthWorkData.length}.`);
 
             const dataToSave = {
-                days: currentMonthWorkData,
+                days: currentMonthWorkData, // Použi aktuálne dáta z monthData
                 hourlyWage: hourlyWage || 10,
                 taxRate: (taxRate * 100) || 2,
                 decimalPlaces: decimalPlaces || 1,
                 employeeName: employeeName || '',
                 darkMode: document.body.classList.contains('dark-mode'),
-                timestamp: firebase.firestore.FieldValue.serverTimestamp() // ServerTimestamp je ok
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
             const yearMonthDoc = `${currentYear}-${currentMonth}`;
             const uid = currentUser.uid;
             const docRef = db.collection("users").doc(uid).collection("calculatorData").doc(yearMonthDoc);
 
-            // ===== PRIDANÝ LOG SEM =====
+            // Logovanie dát tesne pred odoslaním
             try {
-                 // Použi JSON.stringify s null a 2 pre pekné formátovanie a ľahšiu čitateľnosť v konzole
                  console.log('%csaveToFirebase: Dáta pripravené na odoslanie do Firebase:', 'color: #3498db;', JSON.stringify(dataToSave, null, 2));
             } catch (e) {
                  console.error("Chyba pri logovaní dataToSave (stringify):", e);
                  console.log('%csaveToFirebase: Dáta pripravené na odoslanie (objekt):', 'color: #3498db;', dataToSave);
             }
-            // ==========================
 
             await docRef.set(dataToSave);
             console.log(`saveToFirebase: Požiadavka na uloženie dát pre ${yearMonthDoc} odoslaná/zaradená.`);
@@ -653,7 +678,7 @@
     }
 
 
-    // 9. Funkcia na ukladanie do Local Storage - Volá upravené saveToFirebase
+    // 9. Funkcia na ukladanie do Local Storage - Volá saveToFirebase
     function saveToLocalStorage() {
         console.log("saveToLocalStorage: Spustené..."); // Log pre potvrdenie volania
         try {
@@ -671,7 +696,7 @@
             localStorage.setItem('currentMonth', currentMonth.toString());
             localStorage.setItem('currentYear', currentYear.toString());
 
-            const serializedMonthData = JSON.stringify(monthData);
+            const serializedMonthData = JSON.stringify(monthData); // Serializuj AKTUÁLNE monthData
             const bytes = new Blob([serializedMonthData]).size;
             if (bytes > MAX_DATA_SIZE * 0.9) {
                 console.warn(`Veľkosť dát ('workDaysData') v localStorage sa blíži k limitu: ${bytes} bajtov`);
@@ -684,7 +709,7 @@
             localStorage.setItem('workDaysData', serializedMonthData);
             console.log("saveToLocalStorage: Dáta uložené do localStorage.");
             updateDataSize();
-            saveToFirebase(); // Volanie uloženia do Firebase
+            saveToFirebase(); // Volanie uloženia do Firebase s aktuálnymi dátami
             if (!navigator.onLine) {
                 showSaveNotification("Offline: Zmeny uložené lokálne", "warning");
             }
@@ -693,6 +718,7 @@
             showSaveNotification("Kritická chyba pri ukladaní!", "error");
          }
     }
+
 
     // 10. Funkcia na načítanie z Local Storage - Nezmenené
     function loadFromLocalStorage() { try { if (currentMonth === undefined || currentMonth === null || currentYear === undefined || currentYear === null) { const storedMonth = localStorage.getItem('currentMonth'); const storedYear = localStorage.getItem('currentYear'); const currentDate = new Date(); currentMonth = storedMonth !== null ? parseInt(storedMonth) : currentDate.getMonth(); currentYear = storedYear !== null ? parseInt(storedYear) : currentDate.getFullYear(); console.log(`loadFromLocalStorage: Inicializujem mesiac=${currentMonth}, rok=${currentYear}`); } console.log(`loadFromLocalStorage: Načítavam pre ${getMonthName(currentMonth)} ${currentYear}`); const storedMonthData = localStorage.getItem('workDaysData'); monthData = storedMonthData ? JSON.parse(storedMonthData) : {}; if (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) { console.log(`loadFromLocalStorage: Načítaných ${monthData[currentYear][currentMonth].length} záznamov pre ${currentYear}-${currentMonth} z localStorage.`); } else { console.log(`loadFromLocalStorage: Pre ${currentYear}-${currentMonth} neboli v localStorage nájdené žiadne záznamy alebo štruktúra chýba.`); } hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10; taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02; const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false; decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1; employeeName = JSON.parse(localStorage.getItem('employeeName')) || ''; updateUIFromLoadedData(darkMode); } catch (error) { console.error(`Kritická chyba pri načítavaní/spracovaní dát z localStorage pre ${getMonthName(currentMonth)} ${currentYear}:`, error); showSaveNotification("Chyba pri načítaní lokálnych dát!", "error"); monthData = {}; createTable(); calculateTotal(); } }
@@ -862,7 +888,7 @@
         // debouncedProcessInputCompletion(input.id, nextId); // <-- Zakomentované
         saveToLocalStorage(); // <-- Priame volanie uloženia
         // Presun fokusu až po uložení a validácii (ak je to žiaduce)
-        if (input.value.length === 5 && isTimeValid(input.value)) {
+        if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
              moveNext(input, nextId);
         }
     }
@@ -880,6 +906,8 @@
         // debouncedProcessInputCompletion(input.id, nextInputElementId); // <-- Zakomentované
         saveToLocalStorage(); // <-- Priame volanie uloženia
         // Presun fokusu pre break input nie je štandardne implementovaný, nechávame tak
+        // Ak by sme chceli presunúť fokus po zadaní prestávky, pridali by sme:
+        // if (nextInputElementId) { moveNext(input, nextInputElementId); }
     }
 
      function handleNoteInput(textarea, day) {
