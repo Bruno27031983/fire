@@ -687,7 +687,7 @@
         formatInput(input);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
-        calculateTotal(); // <-- PRIDANÁ ZMENA
+        calculateTotal(); // <-- PRIDANÁ ZMENA z predchádzajúcej iterácie
         saveToLocalStorage(); // Priame volanie uloženia
         if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
              moveNext(input, nextId);
@@ -698,7 +698,7 @@
         const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
-        calculateTotal(); // <-- PRIDANÁ ZMENA
+        calculateTotal(); // <-- PRIDANÁ ZMENA z predchádzajúcej iterácie
         // Presun fokusu po prestávke - ponechané len v komentári
         // const nextDay = day + 1;
         // let nextInputElementId = null;
@@ -818,12 +818,25 @@
             total.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`;
             gross.value = '0.00'; net.value = '0.00';
             noteContainer.classList.remove('visible'); noteToggle.textContent = 'Poznámka';
-            if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {}; if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
+
+            // Vynulovanie dát v monthData
+            if (!monthData) monthData = {};
+            if (!monthData[currentYear]) monthData[currentYear] = {};
+            if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
             while (dayIndex >= monthData[currentYear][currentMonth].length) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' }); }
-            if (monthData[currentYear][currentMonth][dayIndex]) { monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' }; }
-            else { console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`); } // Ponechaný Error
-            saveToLocalStorage(); // Priame volanie
-        } else { console.warn(`resetRow: Niektoré elementy pre deň ${day} neboli nájdené.`); } // Ponechané Warn
+            if (monthData[currentYear][currentMonth][dayIndex]) {
+                monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' };
+            } else {
+                console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`); // Ponechaný Error
+            }
+
+            calculateTotal(); // <-- PRIDANÁ ZMENA: Prepočítaj celkové súčty po vynulovaní riadku
+
+            saveToLocalStorage(); // Ulož zmeny (vrátane vynulovaného riadku)
+
+        } else {
+            console.warn(`resetRow: Niektoré elementy pre deň ${day} neboli nájdené.`); // Ponechané Warn
+        }
     }
     function resetAll() {
         if (confirm('Naozaj chcete resetovať všetky záznamy pre tento mesiac?')) {
