@@ -304,14 +304,12 @@
 
     // 5. Auth State Change Listener - Odstránené logy okrem errorov a základného stavu
     auth.onAuthStateChanged(user => {
-        // console.log("onAuthStateChanged: Stav zistený.", user ? `Používateľ: ${user.email}` : "Žiadny používateľ."); // Odstránené
         const authContainer = document.getElementById('auth-container');
         const calculatorContainer = document.getElementById('calculator-container');
         const loadingContainer = document.getElementById('loading-container');
         if (loadingContainer) loadingContainer.classList.add('hidden');
 
         if (firestoreListenerUnsubscribe) {
-            // console.log("Odhlasujem predchádzajúci Firestore listener pri zmene Auth stavu."); // Odstránené
             firestoreListenerUnsubscribe();
             firestoreListenerUnsubscribe = null;
         }
@@ -320,7 +318,6 @@
             document.getElementById('auth-message').textContent = "Prihlásený: " + user.email;
             authContainer.style.display = "none";
             calculatorContainer.style.display = "block";
-            // console.log("Používateľ prihlásený, nastavujem UI a listener..."); // Odstránené
 
             const storedMonth = localStorage.getItem('currentMonth'); const storedYear = localStorage.getItem('currentYear');
             const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false; const currentDate = new Date();
@@ -333,7 +330,6 @@
             hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10; taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02; decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1; employeeName = JSON.parse(localStorage.getItem('employeeName')) || '';
             hourlyWageInput.value = hourlyWage; taxRateInput.value = taxRate * 100; decimalPlacesSelect.value = decimalPlaces; employeeNameInput.value = employeeName;
 
-            // console.log("onAuthStateChanged: Prvé volanie loadFromLocalStorage..."); // Odstránené
             loadFromLocalStorage(); // Prvé načítanie a vykreslenie
 
             setupFirestoreListener(); // Nastavenie listenera
@@ -341,13 +337,10 @@
             const uid = user.uid; const userDocRef = db.collection("users").doc(uid);
             userDocRef.get().then(userDocSnap => { if (!userDocSnap.exists) { userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true }).catch(err => console.error("Chyba pri vytváraní/aktualizácii dokumentu používateľa:", err)); } }).catch(err => { console.error("Chyba pri kontrole dokumentu používateľa (userDocRef.get):", err); showSaveNotification("Chyba pri overovaní používateľských dát", "error"); });
 
-            // Odstránený setTimeout a jeho logy
-
         } else {
             document.getElementById('auth-message').textContent = "Žiadny používateľ nie je prihlásený.";
             authContainer.style.display = "block";
             calculatorContainer.style.display = "none";
-            // console.log("Používateľ odhlásený/neprihlásený."); // Odstránené
             monthData = {}; workDays.innerHTML = ''; totalSalaryDiv.innerHTML = '';
             updateWelcomeMessage(); // Zabezpečí skrytie pozdravu pri odhlásení
         }
@@ -361,14 +354,12 @@
     // 7. Funkcia na nastavenie Firestore Listenera - **VYČISTENÉ LOGY, PONECHANÁ OPTIMALIZÁCIA**
     function setupFirestoreListener() {
         if (firestoreListenerUnsubscribe) {
-             // console.log("Odhlasujem predchádzajúci Firestore listener."); // Odstránené
              firestoreListenerUnsubscribe();
              firestoreListenerUnsubscribe = null;
         }
         const uid = auth.currentUser?.uid; if (!uid) { return; }
         if (currentMonth === undefined || currentMonth === null || currentYear === undefined || currentYear === null) { const now = new Date(); currentMonth = currentMonth ?? now.getMonth(); currentYear = currentYear ?? now.getFullYear(); console.warn("setupFirestoreListener: Chýba mesiac/rok."); } // Ponechané Warn
         const docPath = `users/${uid}/calculatorData/${currentYear}-${currentMonth}`; const docRef = db.doc(docPath);
-        // console.log(`setupFirestoreListener: Nastavujem listener pre ${docPath}`); // Odstránené
 
         firestoreListenerUnsubscribe = docRef.onSnapshot((docSnap) => {
             const hasPending = docSnap.metadata.hasPendingWrites;
@@ -415,16 +406,6 @@
                     monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
                         start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || ''
                     }));
-
-                    // Ulož do localStorage (potvrdenie stavu) - Zakomentované ako potenciálne zbytočné
-                    /*
-                    localStorage.setItem('hourlyWage', JSON.stringify(hourlyWage));
-                    localStorage.setItem('taxRate', JSON.stringify(taxRate * 100));
-                    localStorage.setItem('darkMode', JSON.stringify(firebaseDarkMode));
-                    localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
-                    localStorage.setItem('employeeName', JSON.stringify(employeeName));
-                    localStorage.setItem('workDaysData', JSON.stringify(monthData));
-                    */
 
                     // OPTIMALIZOVANÁ AKTUALIZÁCIA UI RIADKOV
                     const daysInMonth = getDaysInMonth(currentMonth);
@@ -706,6 +687,7 @@
         formatInput(input);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
+        calculateTotal(); // <-- PRIDANÁ ZMENA
         saveToLocalStorage(); // Priame volanie uloženia
         if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
              moveNext(input, nextId);
@@ -716,6 +698,7 @@
         const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
+        calculateTotal(); // <-- PRIDANÁ ZMENA
         // Presun fokusu po prestávke - ponechané len v komentári
         // const nextDay = day + 1;
         // let nextInputElementId = null;
@@ -856,7 +839,6 @@
 
     // 15) Export do PDF (exportToPDF, sendPDF) - **VYČISTENÉ LOGY**
     function exportToPDF() {
-        // console.log("exportToPDF: Spustené..."); // Odstránené
         if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') { alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná."); console.error("jsPDF library or autoTable plugin is not loaded correctly."); return; } // Ponechaný Error
         const { jsPDF } = window.jspdf;
         try {
@@ -896,7 +878,6 @@
         } catch (error) { console.error("Chyba pri generovaní PDF v exportToPDF:", error); alert("Nastala chyba pri vytváraní PDF súboru."); } // Ponechaný Error
     }
     function sendPDF() {
-        // console.log("sendPDF: Spustené..."); // Odstránené
         if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') { alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná."); console.error("jsPDF library or autoTable plugin is not loaded correctly."); return; } // Ponechaný Error
         const { jsPDF } = window.jspdf;
         try {
