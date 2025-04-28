@@ -148,13 +148,13 @@
     body.dark-mode .collapsible-settings summary:hover { background-color: #666; }
     body.dark-mode .collapsible-content { border-top-color: #666; }
 
-    /* --- NOVÉ ŠTÝLY PRE POZNÁMKY --- */
+    /* --- ŠTÝLY PRE POZNÁMKY --- */
     .note-container {
         display: none; /* Štandardne skryté */
         margin-top: 5px;
     }
     .note-container.visible {
-        display: block; /* Zobrazené po kliknutí */
+        display: block; /* Zobrazené po kliknutí alebo načítaní */
     }
     .note-textarea {
         width: 95%; /* Trochu menšia šírka kvôli paddingu bunky */
@@ -194,7 +194,7 @@
     .toggle-note-btn.dark-mode:hover {
         background-color: #70777d;
     }
-    /* --- KONIEC NOVÝCH ŠTÝLOV PRE POZNÁMKY --- */
+    /* --- KONIEC ŠTÝLOV PRE POZNÁMKY --- */
 
   </style>
 </head>
@@ -405,8 +405,9 @@
                  if (docSnap.exists) {
                      const data = docSnap.data(); const firebaseDaysData = data.days || [];
                      if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
+                     // UPRAVENÉ: Zahrnutie noteVisible pri čítaní z pending writes
                      monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
-                         start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || ''
+                         start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || '', noteVisible: day.noteVisible === true // Pridané
                      }));
                  }
                 return; // Dôležité - ukonči spracovanie tu pre lokálny zápis
@@ -438,8 +439,9 @@
 
                     // Priprav monthData na základe Firebase
                     if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
+                    // UPRAVENÉ: Zahrnutie noteVisible pri čítaní z Firebase
                     monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
-                        start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || ''
+                        start: day.start || '', end: day.end || '', breakTime: day.breakTime || '', note: day.note || '', noteVisible: day.noteVisible === true // Pridané
                     }));
 
                     // OPTIMALIZOVANÁ AKTUALIZÁCIA UI RIADKOV
@@ -448,23 +450,29 @@
 
                     for (let i = 1; i <= daysInMonth; i++) {
                         const dayIndex = i - 1;
-                        const firebaseDayData = monthData[currentYear]?.[currentMonth]?.[dayIndex] || { start: '', end: '', breakTime: '', note: '' };
+                        // UPRAVENÉ: Pridané noteVisible do predvoleného objektu
+                        const firebaseDayData = monthData[currentYear]?.[currentMonth]?.[dayIndex] || { start: '', end: '', breakTime: '', note: '', noteVisible: false };
 
                         const startId = `start-${currentYear}-${currentMonth}-${i}`;
                         const endId = `end-${currentYear}-${currentMonth}-${i}`;
                         const breakId = `break-${currentYear}-${currentMonth}-${i}`;
                         const noteId = `note-${currentYear}-${currentMonth}-${i}`;
+                        const noteContainerId = `note-container-${currentYear}-${currentMonth}-${i}`; // Pridané
+                        const noteButtonId = `note-toggle-${currentYear}-${currentMonth}-${i}`; // Pridané
 
                         const startElement = document.getElementById(startId);
                         const endElement = document.getElementById(endId);
                         const breakElement = document.getElementById(breakId);
                         const noteElement = document.getElementById(noteId);
+                        const noteContainer = document.getElementById(noteContainerId); // Pridané
+                        const noteButton = document.getElementById(noteButtonId); // Pridané
 
-                        if (startElement && endElement && breakElement && noteElement) {
+                        if (startElement && endElement && breakElement && noteElement && noteContainer && noteButton) { // Pridaná kontrola pre note kontajnery/tlačidlá
                             const newStart = firebaseDayData.start || '';
                             const newEnd = firebaseDayData.end || '';
                             const newBreak = firebaseDayData.breakTime || '';
                             const newNote = firebaseDayData.note || '';
+                            const newNoteVisible = firebaseDayData.noteVisible === true; // Pridané
                             let rowUpdatedByListener = false;
 
                             if (startElement.value !== newStart && activeElementId !== startId) {
@@ -478,6 +486,15 @@
                             }
                             if (noteElement.value !== newNote && activeElementId !== noteId) {
                                 noteElement.value = newNote;
+                                // Neoznačujeme ako rowUpdatedByListener, neovplyvňuje výpočty
+                            }
+
+                            // UPRAVENÉ: Aktualizácia viditeľnosti poznámky
+                            const currentNoteVisible = noteContainer.classList.contains('visible');
+                            if (currentNoteVisible !== newNoteVisible) {
+                                noteContainer.classList.toggle('visible', newNoteVisible);
+                                noteButton.textContent = newNoteVisible ? 'Skryť' : 'Poznámka';
+                                // rowUpdatedByListener = true; // Zmena viditeľnosti by nemala spúšťať prepočet mzdy
                             }
 
                             if (rowUpdatedByListener) {
@@ -525,14 +542,22 @@
     }
 
 
-    // 8. Funkcia na ukladanie do Firebase - **VYČISTENÉ LOGY**
+    // 8. Funkcia na ukladanie do Firebase - UPRAVENÉ: Pridané noteVisible
     async function saveToFirebase() {
         const currentUser = auth.currentUser;
         if (!currentUser) { return; }
         try {
-            const currentMonthWorkData = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+            // UPRAVENÉ: Pridané noteVisible do dát na uloženie
+            const currentMonthWorkData = ((monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || []).map(day => ({
+                start: day.start || '',
+                end: day.end || '',
+                breakTime: day.breakTime || '',
+                note: day.note || '',
+                noteVisible: day.noteVisible === true // Uloží boolean
+            }));
+
             const dataToSave = {
-                days: currentMonthWorkData,
+                days: currentMonthWorkData, // Použije mapované dáta
                 hourlyWage: hourlyWage || 10,
                 taxRate: (taxRate * 100) || 2,
                 decimalPlaces: decimalPlaces || 1,
@@ -565,6 +590,7 @@
             localStorage.setItem('currentMonth', currentMonth.toString());
             localStorage.setItem('currentYear', currentYear.toString());
 
+            // UPRAVENÉ: Ukladá celé monthData, ktoré už obsahuje noteVisible
             const serializedMonthData = JSON.stringify(monthData);
             const bytes = new Blob([serializedMonthData]).size;
             // Ponechané Warn a Alert pre limit veľkosti
@@ -581,7 +607,7 @@
     }
 
 
-    // 10. Funkcia na načítanie z Local Storage - **VYČISTENÉ LOGY**
+    // 10. Funkcia na načítanie z Local Storage - **VYČISTENÉ LOGY** (monthData už obsahuje noteVisible)
     function loadFromLocalStorage() {
          try {
             if (currentMonth === undefined || currentMonth === null || currentYear === undefined || currentYear === null) {
@@ -593,6 +619,14 @@
             }
             const storedMonthData = localStorage.getItem('workDaysData');
             monthData = storedMonthData ? JSON.parse(storedMonthData) : {};
+            // Zabezpečenie, že staré dáta bez noteVisible dostanú predvolenú hodnotu pri ďalšom spracovaní
+            if (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) {
+                monthData[currentYear][currentMonth] = monthData[currentYear][currentMonth].map(day => ({
+                    ...day, // Zachová existujúce vlastnosti
+                    noteVisible: day.noteVisible === true // Predvolená hodnota false ak chýba
+                }));
+            }
+
             hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10;
             taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02;
             const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
@@ -606,46 +640,53 @@
          }
        }
 
-    // 11. Funkcia na aktualizáciu UI - **VYČISTENÉ LOGY**
+    // 11. Funkcia na aktualizáciu UI - UPRAVENÉ: Správne nastavuje viditeľnosť poznámky
     function updateUIFromLoadedData(darkModeValue) {
         try {
             hourlyWageInput.value = hourlyWage;
             taxRateInput.value = taxRate * 100;
             decimalPlacesSelect.value = decimalPlaces;
             employeeNameInput.value = employeeName;
-            if (monthSelect.querySelector(`option[value="${currentMonth}"]`)) { monthSelect.value = currentMonth; } else { /*console.warn(...);*/ monthSelect.value = new Date().getMonth(); currentMonth = parseInt(monthSelect.value); } // Ponechané Warn (zakomentované)
-            if (yearSelect.querySelector(`option[value="${currentYear}"]`)) { yearSelect.value = currentYear; } else { /*console.warn(...);*/ yearSelect.value = new Date().getFullYear(); currentYear = parseInt(yearSelect.value); populateYearSelect(); yearSelect.value = currentYear;} // Ponechané Warn (zakomentované)
+            if (monthSelect.querySelector(`option[value="${currentMonth}"]`)) { monthSelect.value = currentMonth; } else { monthSelect.value = new Date().getMonth(); currentMonth = parseInt(monthSelect.value); }
+            if (yearSelect.querySelector(`option[value="${currentYear}"]`)) { yearSelect.value = currentYear; } else { yearSelect.value = new Date().getFullYear(); currentYear = parseInt(yearSelect.value); populateYearSelect(); yearSelect.value = currentYear;}
             createTable(); // Táto funkcia teraz obsahuje aj ikony
             const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+
             dataForCurrentMonth.forEach((day, index) => {
                 const i = index + 1;
                 const startElement = document.getElementById(`start-${currentYear}-${currentMonth}-${i}`);
                 const endElement = document.getElementById(`end-${currentYear}-${currentMonth}-${i}`);
                 const breakElement = document.getElementById(`break-${currentYear}-${currentMonth}-${i}`);
                 const noteElement = document.getElementById(`note-${currentYear}-${currentMonth}-${i}`);
-                if (startElement && endElement && breakElement && noteElement) {
+                // --- Získanie referencií na kontajner a tlačidlo poznámky ---
+                const noteContainer = document.getElementById(`note-container-${currentYear}-${currentMonth}-${i}`);
+                const noteButton = document.getElementById(`note-toggle-${currentYear}-${currentMonth}-${i}`);
+
+                if (startElement && endElement && breakElement && noteElement && noteContainer && noteButton) { // Pridaná kontrola noteContainer a noteButton
                     startElement.value = day.start || '';
                     endElement.value = day.end || '';
                     breakElement.value = day.breakTime || '';
                     noteElement.value = day.note || '';
                     calculateRow(i);
-                    // Zobrazenie poznámky, ak existuje
-                    if (day.note) {
-                       const container = document.getElementById(`note-container-${currentYear}-${currentMonth}-${i}`);
-                       const button = document.getElementById(`note-toggle-${currentYear}-${currentMonth}-${i}`);
-                       if (container && button) {
-                           container.classList.add('visible');
-                           button.textContent = 'Skryť';
-                       }
-                    }
+
+                    // --- UPRAVENÁ LOGIKA ZOBRAZENIA POZNÁMKY ---
+                    const isNoteVisible = day.noteVisible === true; // Získame uložený stav
+                    noteContainer.classList.toggle('visible', isNoteVisible); // Nastavíme triedu podľa stavu
+                    noteButton.textContent = isNoteVisible ? 'Skryť' : 'Poznámka'; // Nastavíme text tlačidla
+
+                    // Aplikuj dark mode na textarea a button ak treba
+                    const isDarkModeActive = document.body.classList.contains('dark-mode');
+                    if(noteElement) noteElement.classList.toggle('dark-mode', isDarkModeActive);
+                    if(noteButton) noteButton.classList.toggle('dark-mode', isDarkModeActive);
+                    // --- KONIEC UPRAVENEJ LOGIKY ---
 
                 } else {
-                    console.error(`Kritická chyba: Elementy pre deň ${i} v updateUIFromLoadedData neboli nájdené po createTable!`); // Ponechaný Error
+                    console.error(`Kritická chyba: Elementy pre deň ${i} v updateUIFromLoadedData neboli nájdené po createTable!`);
                 }
             });
             calculateTotal(); updateDataSize(); applyDarkMode(darkModeValue); updateWelcomeMessage();
         } catch (error) {
-            console.error("Chyba počas aktualizácie UI:", error); // Ponechaný Error
+            console.error("Chyba počas aktualizácie UI:", error);
             showSaveNotification("Chyba pri prekresľovaní UI!", "error");
         }
     }
@@ -659,7 +700,8 @@
             ...document.querySelectorAll('input[type="tel"], input[type="number"], input[type="text"], select'),
             ...document.querySelectorAll('.btn'),
             ...document.querySelectorAll('.toggle-note-btn'),
-            ...document.querySelectorAll('.note-textarea')
+            ...document.querySelectorAll('.note-textarea'),
+            ...document.querySelectorAll('.time-icon') // Pridané ikony hodín
         ];
         elementsToToggle.forEach(el => el?.classList[isDark ? 'add' : 'remove']('dark-mode'));
         const currentDayRow = document.querySelector('.current-day');
@@ -667,8 +709,6 @@
             currentDayRow.classList[isDark ? 'add' : 'remove']('dark-mode');
             currentDayRow.querySelectorAll('input, .note-textarea, .toggle-note-btn').forEach(el => el?.classList[isDark ? 'add' : 'remove']('dark-mode'));
         }
-         /* --- NOVÉ: Aplikuj dark mode aj na ikony --- */
-         document.querySelectorAll('.time-icon').forEach(icon => icon.classList[isDark ? 'add' : 'remove']('dark-mode'));
     }
 
     // 13) Vytváranie tabuľky (a súvisiace funkcie) - UPRAVENÉ PRE IKONY
@@ -710,7 +750,7 @@
             `;
             workDays.appendChild(row);
         }
-        applyDarkMode(document.body.classList.contains('dark-mode'));
+        applyDarkMode(document.body.classList.contains('dark-mode')); // Aplikuje dark mode aj na novo vytvorené ikony
     }
 
     // --- NOVÁ FUNKCIA: Vloženie aktuálneho času ---
@@ -739,21 +779,43 @@
     // --- KONIEC NOVEJ FUNKCIE insertCurrentTime ---
 
 
-    // --- Funkcie pre poznámky --- Nezmenené
+    // --- Funkcie pre poznámky --- UPRAVENÉ: Ukladá stav viditeľnosti
     function toggleNote(day) {
         const containerId = `note-container-${currentYear}-${currentMonth}-${day}`;
         const buttonId = `note-toggle-${currentYear}-${currentMonth}-${day}`;
         const noteContainer = document.getElementById(containerId);
         const toggleButton = document.getElementById(buttonId);
+
         if (noteContainer && toggleButton) {
-            const isVisible = noteContainer.classList.toggle('visible');
+            const isVisible = noteContainer.classList.toggle('visible'); // Zmení viditeľnosť a vráti nový stav
             toggleButton.textContent = isVisible ? 'Skryť' : 'Poznámka';
+
+            // --- NOVÉ: Uloženie stavu viditeľnosti do monthData ---
+            const dayIndex = day - 1;
+            if (monthData && monthData[currentYear] && monthData[currentYear][currentMonth] && monthData[currentYear][currentMonth][dayIndex]) {
+                monthData[currentYear][currentMonth][dayIndex].noteVisible = isVisible;
+                saveToLocalStorage(); // Uložíme zmenu stavu viditeľnosti
+            } else {
+                // Vytvoríme záznam ak neexistuje
+                if (!monthData) monthData = {};
+                if (!monthData[currentYear]) monthData[currentYear] = {};
+                if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
+                while (dayIndex >= monthData[currentYear][currentMonth].length) {
+                     monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '', noteVisible: false }); // Pridáme nový záznam
+                }
+                 monthData[currentYear][currentMonth][dayIndex].noteVisible = isVisible;
+                 saveToLocalStorage(); // Uložíme zmenu stavu viditeľnosti
+                console.warn(`toggleNote: Vytvorený chýbajúci záznam pre deň ${dayIndex} pri zmene viditeľnosti poznámky.`);
+            }
+            // --- KONIEC NOVÉHO KÓDU ---
+
+            // Aplikácia dark mode (zostáva rovnaká)
             if (document.body.classList.contains('dark-mode')) {
                  const textarea = noteContainer.querySelector('textarea');
-                 if(textarea) { textarea.classList[isVisible ? 'add' : 'remove']('dark-mode'); }
-                 toggleButton.classList[isVisible ? 'add' : 'remove']('dark-mode');
+                 if(textarea) { textarea.classList.toggle('dark-mode', isVisible); } // Toggle dark mode based on visibility
+                 toggleButton.classList.toggle('dark-mode', isVisible); // Toggle dark mode based on visibility
             }
-        } else { console.warn(`toggleNote: Elementy pre poznámku dňa ${day} neboli nájdené.`); } // Ponechané Warn
+        } else { console.warn(`toggleNote: Elementy pre poznámku dňa ${day} neboli nájdené.`); }
     }
     // --- Koniec funkcií pre poznámky ---
 
@@ -764,8 +826,8 @@
         formatInput(input);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
-        calculateTotal(); // <-- PRIDANÁ ZMENA z predchádzajúcej iterácie
-        saveToLocalStorage(); // Priame volanie uloženia
+        calculateTotal();
+        saveToLocalStorage();
         if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
            moveNext(input, nextId);
         }
@@ -775,16 +837,16 @@
         const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`);
         updateMonthDataFromInput(input, day);
         calculateRow(day);
-        calculateTotal(); // <-- PRIDANÁ ZMENA z predchádzajúcej iterácie
-        saveToLocalStorage(); // Priame volanie uloženia
+        calculateTotal();
+        saveToLocalStorage();
     }
 
     function handleNoteInput(textarea, day) {
         updateMonthDataFromInput(textarea, day);
-        saveToLocalStorage(); // Priame volanie uloženia
+        saveToLocalStorage(); // Uloží aj zmenu textu poznámky
     }
 
-    // ===== updateMonthDataFromInput - VYČISTENÉ LOGY =====
+    // ===== updateMonthDataFromInput - UPRAVENÉ: Zabezpečí existenciu noteVisible =====
     function updateMonthDataFromInput(input, day) {
         if (!input) return;
         const dayIndex = day - 1;
@@ -803,22 +865,28 @@
             if (!monthData[currentYear]) monthData[currentYear] = {};
             if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
 
+            // Zabezpečí existenciu záznamu pre deň vrátane noteVisible
             while (dayIndex >= monthData[currentYear][currentMonth].length) {
-                 monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' });
+                 monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '', noteVisible: false });
             }
 
+            // Ak z nejakého dôvodu chýba noteVisible, pridáme ho
+            if (monthData[currentYear][currentMonth][dayIndex] && typeof monthData[currentYear][currentMonth][dayIndex].noteVisible === 'undefined') {
+                 monthData[currentYear][currentMonth][dayIndex].noteVisible = false; // Predvolená hodnota
+            }
+
+
             if (!monthData[currentYear][currentMonth][dayIndex]) {
-                 console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData.`); // Ponechaný Error
-                 monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' };
+                 console.error(`updateMonthDataFromInput: Chýba záznam pre deň ${dayIndex} v monthData.`);
+                 monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '', noteVisible: false };
             }
 
             const currentValue = monthData[currentYear]?.[currentMonth]?.[dayIndex]?.[field];
             if (currentValue !== value) {
                  monthData[currentYear][currentMonth][dayIndex][field] = value;
-                 // Kontrolný log odstránený
             }
         } else {
-             console.warn("updateMonthDataFromInput: Nerozpoznané pole pre input ID:", fieldId); // Ponechané Warn
+             console.warn("updateMonthDataFromInput: Nerozpoznané pole pre input ID:", fieldId);
         }
     }
 
@@ -871,6 +939,8 @@
         }
      }
     function calculateRow(day) { const startTimeStr = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`)?.value; const endTimeStr = document.getElementById(`end-${currentYear}-${currentMonth}-${day}`)?.value; const breakTimeInput = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`); const breakTime = parseFloat(breakTimeInput?.value) || 0; const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${day}`); const grossElement = document.getElementById(`gross-${currentYear}-${currentMonth}-${day}`); const netElement = document.getElementById(`net-${currentYear}-${currentMonth}-${day}`); if (!totalCell || !grossElement || !netElement) { return; } if (!startTimeStr && !endTimeStr) { totalCell.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; grossElement.value = '0.00'; netElement.value = '0.00'; return; } const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; if (!timeRegex.test(startTimeStr) && startTimeStr !== '' || !timeRegex.test(endTimeStr) && endTimeStr !== '') { totalCell.textContent = 'Neplatný čas'; grossElement.value = '0.00'; netElement.value = '0.00'; return; } if(startTimeStr === '' || endTimeStr === '') { totalCell.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`; grossElement.value = '0.00'; netElement.value = '0.00'; return; } const [startHours, startMinutes] = startTimeStr.split(':').map(Number); const [endHours, endMinutes] = endTimeStr.split(':').map(Number); const startTotalMinutes = startHours * 60 + startMinutes; let endTotalMinutes = endHours * 60 + endMinutes; if (endTotalMinutes < startTotalMinutes) { endTotalMinutes += 24 * 60; } const diffMinutes = endTotalMinutes - startTotalMinutes; const breakMinutes = breakTime * 60; const workedMinutes = Math.max(0, diffMinutes - breakMinutes); const hours = Math.floor(workedMinutes / 60); const minutes = Math.round(workedMinutes % 60); const decimalHours = (workedMinutes / 60); totalCell.textContent = `${hours}h ${minutes}m (${decimalHours.toFixed(decimalPlaces || 1)} h)`; const currentHourlyWage = hourlyWage; const currentTaxRate = taxRate; const grossSalary = decimalHours * currentHourlyWage; grossElement.value = isFinite(grossSalary) ? grossSalary.toFixed(2) : '0.00'; const netSalary = grossSalary * (1 - currentTaxRate); netElement.value = isFinite(netSalary) ? netSalary.toFixed(2) : '0.00'; }
+
+    // UPRAVENÉ: resetRow nastavuje noteVisible na false
     function resetRow(day) {
         const dayIndex = day - 1;
         const start = document.getElementById(`start-${currentYear}-${currentMonth}-${day}`);
@@ -889,29 +959,32 @@
             gross.value = '0.00'; net.value = '0.00';
             noteContainer.classList.remove('visible'); noteToggle.textContent = 'Poznámka';
 
-            // Vynulovanie dát v monthData
+            // Vynulovanie dát v monthData - UPRAVENÉ
             if (!monthData) monthData = {};
             if (!monthData[currentYear]) monthData[currentYear] = {};
             if (!monthData[currentYear][currentMonth]) monthData[currentYear][currentMonth] = [];
-            while (dayIndex >= monthData[currentYear][currentMonth].length) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '' }); }
+            while (dayIndex >= monthData[currentYear][currentMonth].length) { monthData[currentYear][currentMonth].push({ start: '', end: '', breakTime: '', note: '', noteVisible: false }); } // Pridané noteVisible
             if (monthData[currentYear][currentMonth][dayIndex]) {
-                monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '' };
+                // Nastavíme všetky polia na prázdne a noteVisible na false
+                monthData[currentYear][currentMonth][dayIndex] = { start: '', end: '', breakTime: '', note: '', noteVisible: false }; // Nastavenie noteVisible na false
             } else {
                 console.error(`resetRow: Chýba záznam pre deň ${dayIndex} v monthData.`); // Ponechaný Error
             }
 
-            calculateTotal(); // <-- PRIDANÁ ZMENA: Prepočítaj celkové súčty po vynulovaní riadku
-
-            saveToLocalStorage(); // Ulož zmeny (vrátane vynulovaného riadku)
+            calculateTotal();
+            saveToLocalStorage();
 
         } else {
-            console.warn(`resetRow: Niektoré elementy pre deň ${day} neboli nájdené.`); // Ponechané Warn
+            console.warn(`resetRow: Niektoré elementy pre deň ${day} neboli nájdené.`);
         }
     }
     function resetAll() {
         if (confirm('Naozaj chcete resetovať všetky záznamy pre tento mesiac?')) {
             if (!monthData) monthData = {}; if (!monthData[currentYear]) monthData[currentYear] = {};
-            monthData[currentYear][currentMonth] = [];
+            // UPRAVENÉ: Zabezpečí, že pole bude obsahovať objekty s noteVisible: false
+            const days = getDaysInMonth(currentMonth);
+            monthData[currentYear][currentMonth] = Array.from({ length: days }, () => ({ start: '', end: '', breakTime: '', note: '', noteVisible: false }));
+
             createTable(); calculateTotal(); saveToLocalStorage(); // Priame volanie
             showSaveNotification("Dáta pre aktuálny mesiac boli resetované.");
         }
@@ -934,7 +1007,7 @@
             const tableRows = [];
             const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
             dataForCurrentMonth.forEach((day, index) => {
-                if (day.start || day.end || day.note) {
+                if (day.start || day.end || day.note) { // Zobrazí riadok ak má aspoň nejaký vstup alebo poznámku
                     const dayNum = index + 1; const dayName = getDayName(currentYear, currentMonth, dayNum);
                     const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${dayNum}`);
                     const grossInput = document.getElementById(`gross-${currentYear}-${currentMonth}-${dayNum}`);
@@ -972,7 +1045,7 @@
             const tableRows = [];
             const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
             dataForCurrentMonth.forEach((day, index) => {
-                 if (day.start || day.end || day.note) {
+                 if (day.start || day.end || day.note) { // Zobrazí riadok ak má aspoň nejaký vstup alebo poznámku
                      const dayNum = index + 1; const dayName = getDayName(currentYear, currentMonth, dayNum); const noteText = day.note || '';
                      const rowData = [ `Deň ${dayNum} (${dayName})`, day.start || '-', day.end || '-', day.breakTime || '0', noteText ];
                      tableRows.push(rowData);
