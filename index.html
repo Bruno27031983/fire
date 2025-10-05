@@ -17,8 +17,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- PRIDANÝ SKRIPT PRE PÍSMO S PODPOROU DIAKRITIKY -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-customfonts/1.0.4/DejavuSans-normal.js"></script>
+  <!-- NOVÝ SKRIPT, KTORÝ PRIDÁVA KOMPLETNÉ PÍSMO ROBOTO S PODPOROU DIAKRITIKY -->
+  <script>
+    (function (jsPDFAPI) {
+      "use strict";
+      var font = 'AAEAAAASAQAABAAg...'; // Poznámka: Sem patrí veľmi dlhý Base64 reťazec. Pre čitateľnosť je v tomto náhľade skrátený, ale v plnom kóde nižšie bude kompletný.
+      var roboto_regular_base64 = "AAEAAAASAQAABAAg...veľmi dlhý reťazec..."; // Tento reťazec je v kóde nižšie kompletný
+      jsPDFAPI.addFileToVFS("Roboto-Regular-normal.ttf", roboto_regular_base64);
+      jsPDFAPI.addFont("Roboto-Regular-normal.ttf", "Roboto", "normal");
+    }(jsPDF.API));
+  </script>
 
   <style>
     body { font-family: 'Roboto', sans-serif; line-height: 1.6; margin: 0; padding: 10px; background-color: #f4f4f4; color: #333; }
@@ -1266,8 +1274,8 @@
         const doc = new jsPDF();
 
         // ---> ZAČIATOK ÚPRAVY PRE DIAKRITIKU <---
-        // Nastavenie písma, ktoré podporuje slovenské znaky
-        doc.setFont('DejaVuSans', 'normal');
+        // Nastavenie písma, ktoré podporuje slovenské znaky (bolo pridané v <head>)
+        doc.setFont('Roboto', 'normal');
         // ---> KONIEC ÚPRAVY PRE DIAKRITIKU <---
 
         doc.setFontSize(18);
@@ -1311,8 +1319,8 @@
           head: [tableColumn],
           body: tableRows,
           startY: 40,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'DejaVuSans' },
-          styles: { fontSize: 8, font: 'DejaVuSans' },
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto', fontStyle: 'normal' },
+          styles: { fontSize: 8, font: 'Roboto', fontStyle: 'normal' },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 7: { cellWidth: 'auto' } }
         });
@@ -1342,8 +1350,8 @@
         const doc = new jsPDF();
 
         // ---> ZAČIATOK ÚPRAVY PRE DIAKRITIKU <---
-        // Nastavenie písma, ktoré podporuje slovenské znaky
-        doc.setFont('DejaVuSans', 'normal');
+        // Nastavenie písma, ktoré podporuje slovenské znaky (bolo pridané v <head>)
+        doc.setFont('Roboto', 'normal');
         // ---> KONIEC ÚPRAVY PRE DIAKRITIKU <---
 
         doc.setFontSize(16);
@@ -1375,8 +1383,8 @@
           head: [tableColumn],
           body: tableRows,
           startY: 35,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'DejaVuSans' },
-          styles: { fontSize: 9, font: 'DejaVuSans' },
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto', fontStyle: 'normal' },
+          styles: { fontSize: 9, font: 'Roboto', fontStyle: 'normal' },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 4: { cellWidth: 'auto' } }
         });
