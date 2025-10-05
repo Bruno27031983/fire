@@ -1261,7 +1261,9 @@
       const { jsPDF } = window.jspdf;
       try {
         const doc = new jsPDF();
-        doc.setFont("times", "normal"); // Oprava diakritiky: Použitie fontu Times pre lepšiu podporu latin-ext znakov
+        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf', 'DejaVuSans', 'normal');
+        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf', 'DejaVuSans', 'bold');
+        doc.setFont('DejaVuSans', 'normal');
         doc.setFontSize(18);
         doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
         doc.setFontSize(12);
@@ -1303,8 +1305,8 @@
           head: [tableColumn],
           body: tableRows,
           startY: 40,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "times" }, // Oprava: Nastavenie fontu pre hlavičku
-          styles: { fontSize: 8, font: "times" }, // Oprava: Nastavenie fontu pre celú tabuľku
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "DejaVuSans" },
+          styles: { fontSize: 8, font: "DejaVuSans" },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 7: { cellWidth: 'auto' } }
         });
@@ -1332,7 +1334,9 @@
       const { jsPDF } = window.jspdf;
       try {
         const doc = new jsPDF();
-        doc.setFont("times", "normal"); // Oprava diakritiky: Použitie fontu Times pre lepšiu podporu latin-ext znakov
+        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf', 'DejaVuSans', 'normal');
+        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf', 'DejaVuSans', 'bold');
+        doc.setFont('DejaVuSans', 'normal');
         doc.setFontSize(16);
         doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
         doc.setFontSize(12);
@@ -1362,8 +1366,8 @@
           head: [tableColumn],
           body: tableRows,
           startY: 35,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "times" }, // Oprava: Nastavenie fontu pre hlavičku
-          styles: { fontSize: 9, font: "times" }, // Oprava: Nastavenie fontu pre celú tabuľku
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "DejaVuSans" },
+          styles: { fontSize: 9, font: "DejaVuSans" },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 4: { cellWidth: 'auto' } }
         });
