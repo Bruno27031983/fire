@@ -17,20 +17,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
 
-  <!--
-    FINÁLNA OPRAVA DIAKRITIKY:
-    Písmo Roboto je vložené priamo do stránky, aby sa predišlo problémom s načasovaním.
-    Tento blok kódu je úmyselne veľmi dlhý.
-  -->
-  <script>
-    (function (jsPDFAPI) {
-      'use strict';
-      var font = "AAEAAAASAQAABAAg... (veľmi dlhý reťazec kódu písma) ..."; // Prehliadač tento reťazec skráti, ale v skutočnosti je tu celý
-      jsPDFAPI.addFileToVFS('Roboto-Regular-normal.ttf', font);
-      jsPDFAPI.addFont('Roboto-Regular-normal.ttf', 'Roboto', 'normal');
-    }(jsPDF.API));
-  </script>
-
   <style>
     body { font-family: 'Roboto', sans-serif; line-height: 1.6; margin: 0; padding: 10px; background-color: #f4f4f4; color: #333; }
     .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; }
@@ -63,6 +49,7 @@
     th:last-child, td:last-child { min-width: 90px; text-align: center; }
     .btn-container { display: flex; flex-direction: column; width: 100%; gap: 15px; margin-top: 20px; }
     .btn { width: 100%; padding: 15px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; text-align: center; box-sizing: border-box; }
+    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
     .reset-btn { background-color: #f44336; } .reset-btn:hover { background-color: #d32f2f; }
     .export-btn { background-color: #4CAF50; } .export-btn:hover { background-color: #388e3c; }
     .restore-btn { background-color: #9C27B0; } .restore-btn:hover { background-color: #7B1FA2; }
@@ -96,7 +83,7 @@
     #auth-container input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 3px; }
     #auth-container button { width: 95%; padding: 10px; margin: 10px 0; border: none; background-color: #4CAF50; color: #fff; font-size: 16px; border-radius: 3px; cursor: pointer; }
     #auth-container button:hover { background-color: #45a049; }
-    #saveNotification { position: fixed; bottom: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; display: none; z-index: 1000; transition: background-color: 0.3s ease, opacity 0.5s ease; }
+    #saveNotification { position: fixed; bottom: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; display: none; z-index: 1000; transition: background-color 0.3s ease, opacity 0.5s ease; }
     #saveNotification.show { display: block; opacity: 1; }
     #saveNotification.error { background-color: #f44336; }
     #saveNotification.warning { background-color: #ff9800; }
@@ -214,8 +201,8 @@
     </div>
     <div class="btn-container">
       <button class="btn reset-btn" onclick="resetAll()">Resetovať všetko</button>
-      <button class="btn export-btn" onclick="exportToPDF()">Exportovať do PDF</button>
-      <button class="btn export-btn" onclick="sendPDF()">Odoslať</button>
+      <button class="btn export-btn" onclick="exportToPDF(event)">Exportovať do PDF</button>
+      <button class="btn export-btn" onclick="sendPDF(event)">Odoslať</button>
       <button class="btn restore-btn" onclick="restoreBackup()">Obnoviť zálohu</button>
       <button class="btn backup-btn" onclick="createBackup()">Vytvoriť zálohu</button>
       <button id="logout-btn" class="btn reset-btn" onclick="logout()">Odhlásiť sa</button>
@@ -1266,177 +1253,195 @@
       `;
     }
 
-    // ##### OPRAVENÁ FUNKCIA #####
-    function exportToPDF() {
-      if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
-        alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
-        return;
-      }
+    // --- FINÁLNA OPRAVA DIAKRITIKY ---
 
-      const { jsPDF } = window.jspdf;
-      try {
-        const doc = new jsPDF();
-
-        // Nastavenie písma, ktoré bolo pridané do <head> a zaručene podporuje diakritiku
-        doc.setFont('Roboto', 'normal');
-
-        doc.setFontSize(18);
-        doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
-        doc.setFontSize(12);
-        doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
-        doc.text(`Hodinová mzda: ${hourlyWage || 'N/A'} €`, 14, 34);
-        doc.text(`Daň (%): ${taxRate * 100 || 'N/A'}`, 100, 34);
-
-        const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Odpracované", "Hrubá Mzda (€)", "Čistá Mzda (€)", "Poznámka"];
-        const tableRows = [];
-        const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
-
-        dataForCurrentMonth.forEach((day, index) => {
-          if (day.start || day.end || day.note) {
-            const dayNum = index + 1;
-            const dayName = getDayName(currentYear, currentMonth, dayNum);
-            const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${dayNum}`);
-            const grossInput = document.getElementById(`gross-${currentYear}-${currentMonth}-${dayNum}`);
-            const netInput = document.getElementById(`net-${currentYear}-${currentMonth}-${dayNum}`);
-            const workedTimeText = totalCell ? totalCell.textContent : 'N/A';
-            const grossValue = grossInput ? parseFloat(grossInput.value).toFixed(2) : '0.00';
-            const netValue = netInput ? parseFloat(netInput.value).toFixed(2) : '0.00';
-            const noteText = day.note || '';
-
-            const rowData = [
-              `Deň ${dayNum} (${dayName})`,
-              day.start || '-',
-              day.end || '-',
-              day.breakTime || '0',
-              workedTimeText,
-              grossValue,
-              netValue,
-              noteText
-            ];
-            tableRows.push(rowData);
-          }
-        });
-
-        doc.autoTable({
-          head: [tableColumn],
-          body: tableRows,
-          startY: 40,
-          // Dôležité: Nastavenie písma aj pre tabuľku
-          styles: { font: 'Roboto', fontStyle: 'normal' },
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto', fontStyle: 'normal' },
-          alternateRowStyles: { fillColor: [240, 240, 240] },
-          columnStyles: { 7: { cellWidth: 'auto' } }
-        });
-
-        const finalY = doc.lastAutoTable.finalY || 40;
-        doc.setFontSize(10);
-        const totalTextContent = totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?strong>/g, '');
-        doc.text(totalTextContent, 14, finalY + 10);
-
-        const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
-        doc.save(pdfFileName);
-        showSaveNotification("PDF exportované.");
-      } catch (error) {
-        console.error("Chyba pri generovaní PDF:", error);
-        alert("Nastala chyba pri vytváraní PDF súboru.");
-      }
-    }
-
-    // ##### OPRAVENÁ FUNKCIA #####
-    function sendPDF() {
-      if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
-        alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      try {
-        const doc = new jsPDF();
-
-        // Nastavenie písma, ktoré bolo pridané do <head> a zaručene podporuje diakritiku
-        doc.setFont('Roboto', 'normal');
-
-        doc.setFontSize(16);
-        doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
-        doc.setFontSize(12);
-        doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
-
-        const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Poznámka"];
-        const tableRows = [];
-        const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
-
-        dataForCurrentMonth.forEach((day, index) => {
-          if (day.start || day.end || day.note) {
-            const dayNum = index + 1;
-            const dayName = getDayName(currentYear, currentMonth, dayNum);
-            const noteText = day.note || '';
-            const rowData = [
-              `Deň ${dayNum} (${dayName})`,
-              day.start || '-',
-              day.end || '-',
-              day.breakTime || '0',
-              noteText
-            ];
-            tableRows.push(rowData);
-          }
-        });
-
-        doc.autoTable({
-          head: [tableColumn],
-          body: tableRows,
-          startY: 35,
-          // Dôležité: Nastavenie písma aj pre tabuľku
-          styles: { font: 'Roboto', fontStyle: 'normal' },
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto', fontStyle: 'normal' },
-          alternateRowStyles: { fillColor: [240, 240, 240] },
-          columnStyles: { 4: { cellWidth: 'auto' } }
-        });
-
-        const finalY = doc.lastAutoTable.finalY || 35;
-        doc.setFontSize(10);
-        const totalSalaryHTML = totalSalaryDiv.innerHTML;
-        let daysWithEntriesText = 'N/A';
-        const match = totalSalaryHTML.match(/Počet odpracovaných dní: (\d+)/);
-        if (match && match[1]) {
-          daysWithEntriesText = match[1];
-        }
-        const summaryText = `Počet odpracovaných dní: ${daysWithEntriesText}`;
-        doc.text(summaryText, 14, finalY + 10);
-
-        const pdfBlob = doc.output('blob');
-        const pdfFileName = `Vykaz_odoslanie-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
-        const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
-
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-          navigator.share({
-            files: [pdfFile],
-            title: `Pracovný výkaz ${getMonthName(currentMonth)} ${currentYear}`,
-            text: `Výkaz pre ${employeeName || 'pracovníka'} za ${getMonthName(currentMonth)} ${currentYear}.`
-          }).then(() => {
-            showSaveNotification("PDF pripravené na zdieľanie.");
-          }).catch((error) => {
-            if (error.name !== 'AbortError') {
-              console.error('Chyba pri zdieľaní:', error);
-              alert('Chyba pri zdieľaní súboru.');
-            }
-          });
+    // Pomocná funkcia na zmenu stavu tlačidla
+    function setButtonLoadingState(button, isLoading, loadingText, originalText) {
+        if (!button) return;
+        if (isLoading) {
+            button.dataset.originalText = originalText || button.textContent;
+            button.textContent = loadingText;
+            button.disabled = true;
         } else {
-          alert("Zdieľanie súborov nie je podporované. Súbor bude stiahnutý.");
-          const url = URL.createObjectURL(pdfBlob);
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
-          a.download = pdfFileName;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
+            button.textContent = button.dataset.originalText;
+            button.disabled = false;
         }
-      } catch (error) {
-        console.error("Chyba pri generovaní alebo zdieľaní PDF:", error);
-        alert("Nastala chyba pri vytváraní alebo zdieľaní PDF súboru.");
-      }
     }
+
+    // Opravená funkcia exportToPDF
+    async function exportToPDF(event) {
+        const btn = event.target;
+        setButtonLoadingState(btn, true, "Generujem PDF...", "Exportovať do PDF");
+
+        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
+            alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
+            setButtonLoadingState(btn, false, null, "Exportovať do PDF");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        try {
+            const doc = new jsPDF();
+            
+            // Načítanie písma z URL (metóda z vášho funkčného kódu)
+            try {
+                await doc.addFont('httpss://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+                doc.setFont('Roboto');
+            } catch (e) {
+                console.warn("Nepodarilo sa načítať písmo Roboto, používa sa záložné písmo.", e);
+                // Ak zlyhá, pokračuje so štandardným písmom, ktoré nepodporuje diakritiku
+            }
+
+            doc.setFontSize(18);
+            doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
+            doc.text(`Hodinová mzda: ${hourlyWage || 'N/A'} €`, 14, 34);
+            doc.text(`Daň (%): ${taxRate * 100 || 'N/A'}`, 100, 34);
+
+            const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Odpracované", "Hrubá Mzda (€)", "Čistá Mzda (€)", "Poznámka"];
+            const tableRows = [];
+            const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+
+            dataForCurrentMonth.forEach((day, index) => {
+                if (day.start || day.end || day.note) {
+                    const dayNum = index + 1;
+                    const dayName = getDayName(currentYear, currentMonth, dayNum);
+                    const totalCell = document.getElementById(`total-${currentYear}-${currentMonth}-${dayNum}`);
+                    const grossInput = document.getElementById(`gross-${currentYear}-${currentMonth}-${dayNum}`);
+                    const netInput = document.getElementById(`net-${currentYear}-${currentMonth}-${dayNum}`);
+                    const workedTimeText = totalCell ? totalCell.textContent : 'N/A';
+                    const grossValue = grossInput ? parseFloat(grossInput.value).toFixed(2) : '0.00';
+                    const netValue = netInput ? parseFloat(netInput.value).toFixed(2) : '0.00';
+                    const noteText = day.note || '';
+
+                    const rowData = [ `Deň ${dayNum} (${dayName})`, day.start || '-', day.end || '-', day.breakTime || '0', workedTimeText, grossValue, netValue, noteText ];
+                    tableRows.push(rowData);
+                }
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 40,
+                styles: { font: 'Roboto', fontSize: 8 }, // Nastavenie písma pre telo tabuľky
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto' }, // Nastavenie písma pre hlavičku
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                columnStyles: { 7: { cellWidth: 'auto' } }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 40;
+            doc.setFontSize(10);
+            const totalTextContent = totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?strong>/g, '');
+            doc.text(totalTextContent, 14, finalY + 10);
+
+            const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
+            doc.save(pdfFileName);
+            showSaveNotification("PDF exportované.");
+        } catch (error) {
+            console.error("Chyba pri generovaní PDF:", error);
+            alert("Nastala chyba pri vytváraní PDF súboru.");
+        } finally {
+            setButtonLoadingState(btn, false, null, "Exportovať do PDF");
+        }
+    }
+
+    // Opravená funkcia sendPDF
+    async function sendPDF(event) {
+        const btn = event.target;
+        setButtonLoadingState(btn, true, "Pripravujem...", "Odoslať");
+
+        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
+            alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
+            setButtonLoadingState(btn, false, null, "Odoslať");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        try {
+            const doc = new jsPDF();
+
+            // Načítanie písma z URL
+            try {
+                await doc.addFont('httpss://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+                doc.setFont('Roboto');
+            } catch (e) {
+                console.warn("Nepodarilo sa načítať písmo Roboto, používa sa záložné písmo.", e);
+            }
+
+            doc.setFontSize(16);
+            doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
+
+            const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Poznámka"];
+            const tableRows = [];
+            const dataForCurrentMonth = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+
+            dataForCurrentMonth.forEach((day, index) => {
+                if (day.start || day.end || day.note) {
+                    const dayNum = index + 1;
+                    const dayName = getDayName(currentYear, currentMonth, dayNum);
+                    const noteText = day.note || '';
+                    const rowData = [ `Deň ${dayNum} (${dayName})`, day.start || '-', day.end || '-', day.breakTime || '0', noteText ];
+                    tableRows.push(rowData);
+                }
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 35,
+                styles: { font: 'Roboto', fontSize: 9 }, // Nastavenie písma
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, font: 'Roboto' }, // Nastavenie písma
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                columnStyles: { 4: { cellWidth: 'auto' } }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 35;
+            doc.setFontSize(10);
+            const totalSalaryHTML = totalSalaryDiv.innerHTML;
+            let daysWithEntriesText = 'N/A';
+            const match = totalSalaryHTML.match(/Počet odpracovaných dní: (\d+)/);
+            if (match && match[1]) {
+                daysWithEntriesText = match[1];
+            }
+            const summaryText = `Počet odpracovaných dní: ${daysWithEntriesText}`;
+            doc.text(summaryText, 14, finalY + 10);
+
+            const pdfBlob = doc.output('blob');
+            const pdfFileName = `Vykaz_odoslanie-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
+            const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                await navigator.share({
+                    files: [pdfFile],
+                    title: `Pracovný výkaz ${getMonthName(currentMonth)} ${currentYear}`,
+                    text: `Výkaz pre ${employeeName || 'pracovníka'} za ${getMonthName(currentMonth)} ${currentYear}.`
+                });
+                showSaveNotification("PDF pripravené na zdieľanie.");
+            } else {
+                alert("Zdieľanie súborov nie je podporované. Súbor bude stiahnutý.");
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = pdfFileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error("Chyba pri generovaní alebo zdieľaní PDF:", error);
+                alert("Nastala chyba pri vytváraní alebo zdieľaní PDF súboru.");
+            }
+        } finally {
+            setButtonLoadingState(btn, false, null, "Odoslať");
+        }
+    }
+
 
     function changeDecimalPlaces() {
       const newDecimalPlaces = parseInt(decimalPlacesSelect.value);
