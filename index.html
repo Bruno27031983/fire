@@ -1252,6 +1252,7 @@
       `;
     }
 
+    // ===== KÓD S OPRAVOU DIKRITIKY =====
     function exportToPDF() {
       if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
         alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
@@ -1261,9 +1262,15 @@
       const { jsPDF } = window.jspdf;
       try {
         const doc = new jsPDF();
-        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf', 'DejaVuSans', 'normal');
-        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf', 'DejaVuSans', 'bold');
-        doc.setFont('DejaVuSans', 'normal');
+        
+        // NOVÉ: Načítanie a nastavenie písma Roboto, ktoré podporuje diakritiku
+        try {
+          doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+          doc.setFont('Roboto');
+        } catch (e) {
+          console.warn("Nepodarilo sa načítať písmo Roboto pre PDF, použije sa predvolené.", e);
+        }
+
         doc.setFontSize(18);
         doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
         doc.setFontSize(12);
@@ -1305,8 +1312,9 @@
           head: [tableColumn],
           body: tableRows,
           startY: 40,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "DejaVuSans" },
-          styles: { fontSize: 8, font: "DejaVuSans" },
+          // UPRAVENÉ: Pridané nastavenie písma pre tabuľku
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: doc.getFont().fontName },
+          styles: { fontSize: 8, font: doc.getFont().fontName },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 7: { cellWidth: 'auto' } }
         });
@@ -1325,6 +1333,7 @@
       }
     }
 
+    // ===== KÓD S OPRAVOU DIKRITIKY =====
     function sendPDF() {
       if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined') {
         alert("Chyba: Knižnica jsPDF alebo autoTable nie je správne načítaná.");
@@ -1334,9 +1343,15 @@
       const { jsPDF } = window.jspdf;
       try {
         const doc = new jsPDF();
-        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf', 'DejaVuSans', 'normal');
-        doc.addFont('https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf', 'DejaVuSans', 'bold');
-        doc.setFont('DejaVuSans', 'normal');
+
+        // NOVÉ: Načítanie a nastavenie písma Roboto, ktoré podporuje diakritiku
+        try {
+          doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+          doc.setFont('Roboto');
+        } catch (e) {
+          console.warn("Nepodarilo sa načítať písmo Roboto pre PDF, použije sa predvolené.", e);
+        }
+
         doc.setFontSize(16);
         doc.text(`Pracovný výkaz - ${getMonthName(currentMonth)} ${currentYear}`, 14, 20);
         doc.setFontSize(12);
@@ -1366,8 +1381,9 @@
           head: [tableColumn],
           body: tableRows,
           startY: 35,
-          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: "DejaVuSans" },
-          styles: { fontSize: 9, font: "DejaVuSans" },
+          // UPRAVENÉ: Pridané nastavenie písma pre tabuľku
+          headStyles: { fillColor: [41, 128, 185], textColor: 255, font: doc.getFont().fontName },
+          styles: { fontSize: 9, font: doc.getFont().fontName },
           alternateRowStyles: { fillColor: [240, 240, 240] },
           columnStyles: { 4: { cellWidth: 'auto' } }
         });
