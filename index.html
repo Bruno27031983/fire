@@ -1261,12 +1261,17 @@
       const { jsPDF } = window.jspdf;
       try {
         const doc = new jsPDF();
+        
+        // OPRAVA: Nastavenie kódovania pre slovenčinu
+        doc.setLanguage("sk");
+        doc.setCharSpace(0.5);
+        
         doc.setFontSize(18);
-        doc.text(`Bruno's Calculator - Výkaz (${getMonthName(currentMonth)} ${currentYear})`, 14, 20);
+        doc.text("Bruno's Calculator - Vykaz (" + getMonthName(currentMonth) + " " + currentYear + ")", 14, 20);
         doc.setFontSize(12);
-        doc.text(`Meno pracovníka: ${employeeName || 'Nezadané'}`, 14, 28);
-        doc.text(`Hodinová mzda: ${hourlyWage || 'N/A'} €`, 14, 34);
-        doc.text(`Daň (%): ${taxRate * 100 || 'N/A'}`, 100, 34);
+        doc.text("Meno pracovnika: " + (employeeName || 'Nezadane'), 14, 28);
+        doc.text("Hodinova mzda: " + (hourlyWage || 'N/A') + " €", 14, 34);
+        doc.text("Dan (%): " + (taxRate * 100 || 'N/A'), 100, 34);
 
         const tableColumn = ["Deň", "Príchod", "Odchod", "Prestávka (h)", "Odpracované", "Hrubá Mzda (€)", "Čistá Mzda (€)", "Poznámka"];
         const tableRows = [];
