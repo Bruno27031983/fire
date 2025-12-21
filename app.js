@@ -197,6 +197,87 @@ function clearValidationError(element) {
   }, 1000);
 }
 
+// ========================================
+// SAFE ERROR HANDLING (Information Disclosure Prevention)
+// ========================================
+
+// Firebase Auth Error Code Mapping
+const AUTH_ERROR_MESSAGES = {
+  // Login errors
+  'auth/invalid-credential': 'Nesprávny email alebo heslo.',
+  'auth/user-not-found': 'Nesprávny email alebo heslo.',
+  'auth/wrong-password': 'Nesprávny email alebo heslo.',
+  'auth/invalid-email': 'Neplatný formát emailu.',
+  'auth/user-disabled': 'Tento účet bol zablokovaný. Kontaktujte podporu.',
+
+  // Registration errors
+  'auth/email-already-in-use': 'Email už existuje. Skúste sa prihlásiť.',
+  'auth/weak-password': 'Heslo je príliš slabé. Použite aspoň 8 znakov.',
+  'auth/operation-not-allowed': 'Registrácia je momentálne nedostupná.',
+
+  // Rate limiting
+  'auth/too-many-requests': 'Príliš veľa pokusov. Skúste znova o 5 minút.',
+
+  // Network errors
+  'auth/network-request-failed': 'Problém s pripojením. Skontrolujte internet.',
+  'auth/timeout': 'Požiadavka vypršala. Skúste znova.',
+
+  // Password reset
+  'auth/expired-action-code': 'Odkaz na obnovenie hesla vypršal.',
+  'auth/invalid-action-code': 'Neplatný odkaz na obnovenie hesla.',
+  'auth/user-token-expired': 'Session vypršala. Prihláste sa znova.',
+
+  // Generic fallback
+  'default': 'Nastala chyba. Skúste to neskôr.'
+};
+
+// Bezpečné zobrazenie error správy
+function handleAuthError(error, context = 'auth') {
+  // Log detailnú chybu do konzoly (iba v development)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.error(`[${context}] Detailná chyba:`, {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
+  } else {
+    // V production loguj len error code
+    console.error(`[${context}] Chyba:`, error.code || 'unknown');
+  }
+
+  // Vráť user-friendly správu (bez information disclosure)
+  const userMessage = AUTH_ERROR_MESSAGES[error.code] || AUTH_ERROR_MESSAGES['default'];
+  return userMessage;
+}
+
+// Bezpečné zobrazenie alert správy
+function showSafeAlert(message, type = 'info') {
+  // V budúcnosti môžeme nahradiť alert() custom notification UI
+  alert(message);
+}
+
+// Generic error handler pre Firestore
+function handleFirestoreError(error, operation = 'operácia') {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.error(`[Firestore ${operation}] Chyba:`, error);
+  } else {
+    console.error(`[Firestore ${operation}] Chyba:`, error.code || 'unknown');
+  }
+
+  // Generické správy pre Firestore errors
+  const firestoreErrors = {
+    'permission-denied': 'Nemáte oprávnenie na túto operáciu.',
+    'unavailable': 'Služba je momentálne nedostupná. Skúste neskôr.',
+    'deadline-exceeded': 'Operácia trvala príliš dlho. Skúste znova.',
+    'not-found': 'Požadované dáta neboli nájdené.',
+    'already-exists': 'Dáta už existujú.',
+    'resource-exhausted': 'Dosiahnutý limit požiadaviek. Skúste neskôr.',
+    'default': 'Nastala chyba pri ukladaní dát.'
+  };
+
+  return firestoreErrors[error.code] || firestoreErrors['default'];
+}
+
 // Auth funkcie
 function register() {
   const emailInput = document.getElementById('registerEmail');
@@ -223,10 +304,12 @@ function register() {
   clearValidationError(passwordInput);
 
   auth.createUserWithEmailAndPassword(emailValidation.value, passwordValidation.value)
-    .then(() => { alert("Registrácia úspešná!"); })
+    .then(() => {
+      showSafeAlert("Registrácia úspešná!");
+    })
     .catch((error) => {
-      console.error("Chyba pri registrácii:", error.message);
-      alert("Chyba pri registrácii: " + error.message);
+      const safeMessage = handleAuthError(error, 'register');
+      showSafeAlert(safeMessage);
     });
 }
 
@@ -254,30 +337,52 @@ function login() {
   clearValidationError(passwordInput);
 
   auth.signInWithEmailAndPassword(emailValidation.value, passwordInput.value)
-    .then(() => { alert("Prihlásenie úspešné!"); })
+    .then(() => {
+      showSafeAlert("Prihlásenie úspešné!");
+    })
     .catch((error) => {
-      console.error("Chyba pri prihlásení:", error.message);
-      alert("Chyba pri prihlásení: " + error.message);
+      const safeMessage = handleAuthError(error, 'login');
+      showSafeAlert(safeMessage);
     });
 }
 
 function logout() {
   auth.signOut()
-    .then(() => { alert("Odhlásenie úspešné!"); })
-    .catch((error) => { console.error("Chyba pri odhlásení:", error.message); alert("Chyba pri odhlásení: " + error.message); });
+    .then(() => {
+      showSafeAlert("Odhlásenie úspešné!");
+    })
+    .catch((error) => {
+      const safeMessage = handleAuthError(error, 'logout');
+      showSafeAlert(safeMessage);
+    });
 }
 
 function forgotPassword() {
   const emailInput = document.getElementById('loginEmail');
   const email = emailInput.value;
-  if (!email) {
-    alert("Prosím, zadajte svoju e-mailovú adresu do poľa pre prihlásenie.");
+
+  if (!email || email.trim() === '') {
+    showSafeAlert("Prosím, zadajte svoju e-mailovú adresu do poľa pre prihlásenie.");
     emailInput.focus();
     return;
   }
-  auth.sendPasswordResetEmail(email)
-    .then(() => { alert("Odkaz na obnovenie hesla bol odoslaný na vašu e-mailovú adresu."); })
-    .catch((error) => { console.error("Chyba pri odosielaní e-mailu:", error); alert("Chyba: " + error.message); });
+
+  // Validácia emailu pred odoslaním
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.valid) {
+    showSafeAlert(emailValidation.error);
+    emailInput.focus();
+    return;
+  }
+
+  auth.sendPasswordResetEmail(emailValidation.value)
+    .then(() => {
+      showSafeAlert("Odkaz na obnovenie hesla bol odoslaný na vašu e-mailovú adresu.");
+    })
+    .catch((error) => {
+      const safeMessage = handleAuthError(error, 'forgotPassword');
+      showSafeAlert(safeMessage);
+    });
 }
 
 // Auth State Change
@@ -572,8 +677,8 @@ function setupFirestoreListener() {
     }
 
   }, (error) => {
-    console.error(`Firestore listener CHYBA:`, error);
-    showSaveNotification("Chyba: Nepodarilo sa pripojiť k Firebase", "error");
+    const safeMessage = handleFirestoreError(error, 'listener');
+    showSaveNotification(safeMessage, "error");
     loadFromLocalStorage();
   });
 }
@@ -609,10 +714,10 @@ async function saveToFirebase() {
     const docRef = db.collection("users").doc(uid).collection("calculatorData").doc(yearMonthDoc);
     
     await docRef.set(dataToSave);
-    
+
   } catch (error) {
-    console.error(`Chyba pri ukladaní do Firebase:`, error);
-    showSaveNotification("Chyba: Nepodarilo sa odoslať dáta do Firebase", "error");
+    const safeMessage = handleFirestoreError(error, 'ukladanie');
+    showSaveNotification(safeMessage, "error");
   }
 }
 
