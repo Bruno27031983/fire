@@ -584,7 +584,7 @@ function getDayName(year, month, day) {
 }
 
 function createTable() {
-  workDays.innerHTML = '';
+  workDays.replaceChildren();
   const daysInMonth = getDaysInMonth(currentMonth);
   const today = new Date();
   const currentDayOfMonth = today.getDate();
@@ -610,32 +610,151 @@ function createTable() {
     const noteTextareaId = `note-${baseId}`;
     const noteIndicatorId = `note-indicator-${baseId}`;
 
-    row.innerHTML = `
-      <td>Deň ${i} (${dayName})</td>
-      <td>
-        <input type="tel" id="${startId}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, '${endId}', ${i})">
-        <span class="time-icon" title="Vložiť aktuálny čas" onclick="insertCurrentTime('${startId}')">⏰</span>
-      </td>
-      <td>
-        <input type="tel" id="${endId}" maxlength="5" pattern="[0-9:]*" inputmode="numeric" placeholder="HH:MM" oninput="handleInput(this, '${breakId}', ${i})">
-        <span class="time-icon" title="Vložiť aktuálny čas" onclick="insertCurrentTime('${endId}')">⏰</span>
-      </td>
-      <td><input type="number" id="${breakId}" min="0" step="0.5" placeholder="prestávka" oninput="handleBreakInput(${i})"></td>
-      <td id="${totalId}">0h 0m (${(0).toFixed(decimalPlaces || 1)} h)</td>
-      <td><input type="number" id="${grossId}" min="0" step="0.01" placeholder="Hrubá Mzda" readonly></td>
-      <td><input type="number" id="${netId}" min="0" step="0.01" placeholder="Čistá Mzda" readonly></td>
-      <td>
-        <span class="note-indicator-icon" id="${noteIndicatorId}">📝</span>
-        <button id="${noteToggleId}" class="toggle-note-btn" onclick="toggleNote(${i})">Poznámka</button>
-        <div id="${noteContainerId}" class="note-container">
-          <textarea id="${noteTextareaId}" class="note-textarea" placeholder="Zadajte poznámku..." oninput="handleNoteInput(this, ${i})"></textarea>
-        </div>
-      </td>
-      <td><button class="btn reset-btn" onclick="resetRow(${i})">Vynulovať</button></td>
-    `;
+    // TD 1: Deň
+    const td1 = document.createElement('td');
+    td1.textContent = `Deň ${i} (${dayName})`;
+
+    // TD 2: Príchod
+    const td2 = document.createElement('td');
+    const startInput = document.createElement('input');
+    startInput.type = 'tel';
+    startInput.id = startId;
+    startInput.setAttribute('maxlength', '5');
+    startInput.setAttribute('pattern', '[0-9:]*');
+    startInput.setAttribute('inputmode', 'numeric');
+    startInput.placeholder = 'HH:MM';
+    startInput.dataset.day = i;
+    startInput.dataset.field = 'start';
+    startInput.dataset.nextField = endId;
+
+    const startIcon = document.createElement('span');
+    startIcon.className = 'time-icon';
+    startIcon.title = 'Vložiť aktuálny čas';
+    startIcon.textContent = '⏰';
+    startIcon.dataset.action = 'insert-time';
+    startIcon.dataset.target = startId;
+
+    td2.appendChild(startInput);
+    td2.appendChild(startIcon);
+
+    // TD 3: Odchod
+    const td3 = document.createElement('td');
+    const endInput = document.createElement('input');
+    endInput.type = 'tel';
+    endInput.id = endId;
+    endInput.setAttribute('maxlength', '5');
+    endInput.setAttribute('pattern', '[0-9:]*');
+    endInput.setAttribute('inputmode', 'numeric');
+    endInput.placeholder = 'HH:MM';
+    endInput.dataset.day = i;
+    endInput.dataset.field = 'end';
+    endInput.dataset.nextField = breakId;
+
+    const endIcon = document.createElement('span');
+    endIcon.className = 'time-icon';
+    endIcon.title = 'Vložiť aktuálny čas';
+    endIcon.textContent = '⏰';
+    endIcon.dataset.action = 'insert-time';
+    endIcon.dataset.target = endId;
+
+    td3.appendChild(endInput);
+    td3.appendChild(endIcon);
+
+    // TD 4: Prestávka
+    const td4 = document.createElement('td');
+    const breakInput = document.createElement('input');
+    breakInput.type = 'number';
+    breakInput.id = breakId;
+    breakInput.setAttribute('min', '0');
+    breakInput.setAttribute('step', '0.5');
+    breakInput.placeholder = 'prestávka';
+    breakInput.dataset.day = i;
+    breakInput.dataset.field = 'breakTime';
+    td4.appendChild(breakInput);
+
+    // TD 5: Odpracované
+    const td5 = document.createElement('td');
+    td5.id = totalId;
+    td5.textContent = `0h 0m (${(0).toFixed(decimalPlaces || 1)} h)`;
+
+    // TD 6: Hrubá Mzda
+    const td6 = document.createElement('td');
+    const grossInput = document.createElement('input');
+    grossInput.type = 'number';
+    grossInput.id = grossId;
+    grossInput.setAttribute('min', '0');
+    grossInput.setAttribute('step', '0.01');
+    grossInput.placeholder = 'Hrubá Mzda';
+    grossInput.readOnly = true;
+    td6.appendChild(grossInput);
+
+    // TD 7: Čistá Mzda
+    const td7 = document.createElement('td');
+    const netInput = document.createElement('input');
+    netInput.type = 'number';
+    netInput.id = netId;
+    netInput.setAttribute('min', '0');
+    netInput.setAttribute('step', '0.01');
+    netInput.placeholder = 'Čistá Mzda';
+    netInput.readOnly = true;
+    td7.appendChild(netInput);
+
+    // TD 8: Poznámka
+    const td8 = document.createElement('td');
+
+    const noteIndicator = document.createElement('span');
+    noteIndicator.className = 'note-indicator-icon';
+    noteIndicator.id = noteIndicatorId;
+    noteIndicator.textContent = '📝';
+    noteIndicator.style.display = 'none';
+
+    const noteToggleBtn = document.createElement('button');
+    noteToggleBtn.type = 'button';
+    noteToggleBtn.id = noteToggleId;
+    noteToggleBtn.className = 'toggle-note-btn';
+    noteToggleBtn.textContent = 'Poznámka';
+    noteToggleBtn.dataset.action = 'toggle-note';
+    noteToggleBtn.dataset.day = i;
+
+    const noteContainer = document.createElement('div');
+    noteContainer.id = noteContainerId;
+    noteContainer.className = 'note-container';
+
+    const noteTextarea = document.createElement('textarea');
+    noteTextarea.id = noteTextareaId;
+    noteTextarea.className = 'note-textarea';
+    noteTextarea.placeholder = 'Zadajte poznámku...';
+    noteTextarea.dataset.day = i;
+    noteTextarea.dataset.field = 'note';
+
+    noteContainer.appendChild(noteTextarea);
+    td8.appendChild(noteIndicator);
+    td8.appendChild(noteToggleBtn);
+    td8.appendChild(noteContainer);
+
+    // TD 9: Reset
+    const td9 = document.createElement('td');
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'btn reset-btn';
+    resetBtn.textContent = 'Vynulovať';
+    resetBtn.dataset.action = 'reset-row';
+    resetBtn.dataset.day = i;
+    td9.appendChild(resetBtn);
+
+    row.appendChild(td1);
+    row.appendChild(td2);
+    row.appendChild(td3);
+    row.appendChild(td4);
+    row.appendChild(td5);
+    row.appendChild(td6);
+    row.appendChild(td7);
+    row.appendChild(td8);
+    row.appendChild(td9);
+
     workDays.appendChild(row);
   }
-  
+
   applyDarkMode(document.body.classList.contains('dark-mode'));
 }
 
@@ -1023,14 +1142,12 @@ function calculateTotal() {
   const totalHours = Math.floor(grandTotalWorkedMinutes / 60);
   const totalMinutesRemainder = Math.round(grandTotalWorkedMinutes % 60);
 
-  totalSalaryDiv.innerHTML = `
-    Počet odpracovaných dní: ${daysWithEntries}<br>
-    Celkový odpracovaný čas: ${totalHours}h ${totalMinutesRemainder}m (${grandTotalDecimalHours.toFixed(currentDecimalPlaces)} h)<br>
-    Celková hrubá mzda: ${grandTotalGrossSalary.toFixed(2)}€<br>
-    Celková čistá mzda: ${grandTotalNetSalary.toFixed(2)}€<br>
-    Priemerná čistá mzda na deň: ${averageNetSalary.toFixed(2)}€<br>
-    <strong>Priemerný odpracovaný čas na deň: ${averageHours}h ${averageMinutes}m (${averageDecimalHours.toFixed(currentDecimalPlaces)} h)</strong>
-  `;
+  totalSalaryDiv.textContent = `Počet odpracovaných dní: ${daysWithEntries}
+Celkový odpracovaný čas: ${totalHours}h ${totalMinutesRemainder}m (${grandTotalDecimalHours.toFixed(currentDecimalPlaces)} h)
+Celková hrubá mzda: ${grandTotalGrossSalary.toFixed(2)}€
+Celková čistá mzda: ${grandTotalNetSalary.toFixed(2)}€
+Priemerná čistá mzda na deň: ${averageNetSalary.toFixed(2)}€
+Priemerný odpracovaný čas na deň: ${averageHours}h ${averageMinutes}m (${averageDecimalHours.toFixed(currentDecimalPlaces)} h)`;
 }
 
 // ===== KÓD S OPRAVOU DIKRITIKY =====
@@ -1102,7 +1219,7 @@ function exportToPDF() {
 
     const finalY = doc.lastAutoTable.finalY || 40;
     doc.setFontSize(10);
-    const totalTextContent = totalSalaryDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?strong>/g, '');
+    const totalTextContent = (totalSalaryDiv.textContent || '').split('\n');
     doc.text(totalTextContent, 14, finalY + 10);
 
     const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
@@ -1171,9 +1288,9 @@ function sendPDF() {
 
     const finalY = doc.lastAutoTable.finalY || 35;
     doc.setFontSize(10);
-    const totalSalaryHTML = totalSalaryDiv.innerHTML;
+    const totalSalaryText = totalSalaryDiv.textContent || '';
     let daysWithEntriesText = 'N/A';
-    const match = totalSalaryHTML.match(/Počet odpracovaných dní: (\d+)/);
+    const match = totalSalaryText.match(/Počet odpracovaných dní: (\d+)/);
     if (match && match[1]) {
       daysWithEntriesText = match[1];
     }
@@ -1487,13 +1604,47 @@ function initEventListeners() {
   if (sendPDFBtn) sendPDFBtn.addEventListener('click', sendPDF);
   if (restoreBackupBtn) restoreBackupBtn.addEventListener('click', restoreBackup);
   if (createBackupBtn) createBackupBtn.addEventListener('click', createBackup);
+
+  // Event delegation na workDays pre dynamické elementy
+  if (workDays) {
+    // Input events (start, end, breakTime, note)
+    workDays.addEventListener('input', (e) => {
+      const target = e.target;
+      const day = parseInt(target.dataset.day);
+      const field = target.dataset.field;
+
+      if (!day || !field) return;
+
+      if (field === 'start' || field === 'end') {
+        const nextFieldId = target.dataset.nextField;
+        handleInput(target, nextFieldId, day);
+      } else if (field === 'breakTime') {
+        handleBreakInput(day);
+      } else if (field === 'note') {
+        handleNoteInput(target, day);
+      }
+    });
+
+    // Click events (insert-time, toggle-note, reset-row)
+    workDays.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.dataset.action;
+
+      if (action === 'insert-time') {
+        const targetInputId = target.dataset.target;
+        insertCurrentTime(targetInputId);
+      } else if (action === 'toggle-note') {
+        const day = parseInt(target.dataset.day);
+        if (day) toggleNote(day);
+      } else if (action === 'reset-row') {
+        const day = parseInt(target.dataset.day);
+        if (day) resetRow(day);
+      }
+    });
+  }
 }
 
-// Make insertCurrentTime, toggleNote, resetRow, handleInput, handleBreakInput, handleNoteInput available globally
-// because they are called from dynamically created elements
-window.insertCurrentTime = insertCurrentTime;
-window.toggleNote = toggleNote;
-window.resetRow = resetRow;
-window.handleInput = handleInput;
-window.handleBreakInput = handleBreakInput;
-window.handleNoteInput = handleNoteInput;
+// Funkcie insertCurrentTime, toggleNote, resetRow, handleInput, handleBreakInput, handleNoteInput
+// sú teraz volané cez event delegation, takže už nie sú potrebné ako window.* exports
