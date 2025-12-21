@@ -755,9 +755,9 @@ function setupFirestoreListener() {
         // DÔLEŽITÉ: Ulož do localStorage aby boli dáta dostupné v offline režime
         saveToLocalStorage(true);
 
-        if (!docSnap.metadata.fromCache) {
-          // Zobraz notifikáciu len ak sa skutočne zmenili dáta
-          console.log('[Firebase] Dáta synchronizované z cloudu');
+        // Notify sync only when server-confirmed (avoid local/pending snapshot spam)
+        if (!docSnap.metadata.hasPendingWrites && !docSnap.metadata.fromCache) {
+          showSaveNotification("✅ Dáta synchronizované", "success");
         }
 
       } catch (processError) {
