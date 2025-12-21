@@ -24,7 +24,6 @@
       https://www.gstatic.com
       https://cdnjs.cloudflare.com;
     frame-src https://www.google.com https://recaptcha.google.com;
-    frame-ancestors 'none';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -35,10 +34,11 @@
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="no-referrer">
 
-  <!-- Poznámka: Nasledujúce hlavičky musia byť nastavené cez HTTP server (nie meta tag): -->
-  <!-- - X-Frame-Options: DENY (redundantné s CSP frame-ancestors, ale pre legacy browsers) -->
-  <!-- - Strict-Transport-Security: max-age=31536000; includeSubDomains; preload (iba HTTPS!) -->
-  <!-- - Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=() -->
+  <!-- POZNÁMKA: Nasledujúce CSP direktívy a security headers MUSIA byť nastavené cez HTTP server (nefungujú v meta tag): -->
+  <!-- CSP frame-ancestors 'none';  - prevencia clickjacking (ignorované v meta, len HTTP header!) -->
+  <!-- X-Frame-Options: DENY  - legacy fallback pre staré browsery -->
+  <!-- Strict-Transport-Security: max-age=31536000; includeSubDomains; preload  - HTTPS only -->
+  <!-- Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()  - feature policy -->
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
