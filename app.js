@@ -394,6 +394,13 @@ auth.onAuthStateChanged(user => {
   const authContainer = document.getElementById('auth-container');
   const calculatorContainer = document.getElementById('calculator-container');
 
+  console.log('[Auth] onAuthStateChanged triggered:', {
+    user: user ? user.email : null,
+    online: navigator.onLine,
+    lastAuthUser: localStorage.getItem('lastAuthUser'),
+    offlineMode: localStorage.getItem('offlineMode')
+  });
+
   if (firestoreListenerUnsubscribe) {
     firestoreListenerUnsubscribe();
     firestoreListenerUnsubscribe = null;
@@ -402,9 +409,17 @@ auth.onAuthStateChanged(user => {
   // OFFLINE SUPPORT: Ak nie je user (offline), check localStorage
   if (!user) {
     const lastAuthUser = localStorage.getItem('lastAuthUser');
-    const offlineMode = localStorage.getItem('offlineMode');
+    const isOffline = !navigator.onLine;
 
-    if (lastAuthUser && offlineMode === 'true') {
+    console.log('[Auth] User is null. Checking offline mode...', {
+      lastAuthUser,
+      isOffline,
+      hasLocalStorage: !!lastAuthUser
+    });
+
+    // Ak máme lastAuthUser a sme offline, alebo explicitne offlineMode
+    if (lastAuthUser && isOffline) {
+      console.log('[Auth] ✅ Aktivujem offline režim!');
       // Offline režim - zobraz data z localStorage
       document.getElementById('auth-message').textContent = "Offline režim: " + lastAuthUser;
       authContainer.classList.add('hidden');
@@ -413,6 +428,10 @@ auth.onAuthStateChanged(user => {
       // Načítaj všetko z localStorage (bez Firebase)
       loadOfflineData();
       return; // Skonči tu, nevolaj Firebase operácie
+    } else {
+      console.log('[Auth] ❌ Offline režim neaktivovaný:', {
+        reason: !lastAuthUser ? 'No lastAuthUser' : 'Online mode'
+      });
     }
   }
 
@@ -607,6 +626,9 @@ function setupFirestoreListener() {
           note: day.note || '',
           noteVisible: day.noteVisible === true
         }));
+
+        // Ulož aj pending dáta do localStorage
+        saveToLocalStorage();
       }
       return;
     }
@@ -729,6 +751,9 @@ function setupFirestoreListener() {
         applyDarkMode(firebaseDarkMode);
         updateWelcomeMessage();
         updateDataSize();
+
+        // DÔLEŽITÉ: Ulož do localStorage aby boli dáta dostupné v offline režime
+        saveToLocalStorage();
 
         if (!docSnap.metadata.fromCache) {
           showSaveNotification("Dáta synchronizované");
