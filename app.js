@@ -5,14 +5,7 @@ try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', t
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Offline Persistence
-db.enablePersistence().catch((err) => { 
-  if (err.code == 'failed-precondition') { 
-    console.warn("Firestore offline: Viacnásobné taby."); 
-  } else if (err.code == 'unimplemented') { 
-    console.error("Firestore offline: Prehliadač nepodporovaný."); 
-  } 
-});
+// Offline Persistence je automaticky zapnutá v Firebase 8+
 
 // Globálne premenné
 let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate;
