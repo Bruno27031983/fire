@@ -10,7 +10,7 @@
   <!-- Security Headers -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com;
+    script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://www.google.com;
     style-src 'self' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
     img-src 'self' data: blob:;
@@ -21,14 +21,15 @@
       https://identitytoolkit.googleapis.com
       https://securetoken.googleapis.com
       https://www.google.com
-      https://www.gstatic.com;
-    frame-src 'none';
+      https://www.gstatic.com
+      https://cdnjs.cloudflare.com;
+    frame-src https://www.google.com https://recaptcha.google.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <meta http-equiv="X-Frame-Options" content="DENY">
+  <!-- Note: X-Frame-Options must be set as HTTP header, not meta tag -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -44,7 +45,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-  <div id="auth-container" style="display:none;">
+  <div id="auth-container" class="hidden">
     <h1>Prihlásenie / Registrácia</h1>
     <div id="auth-message">Žiadny používateľ nie je prihlásený.</div>
     <div id="auth-forms">
@@ -59,7 +60,7 @@
       <a id="forgot-password-link">Zabudli ste heslo?</a>
     </div>
   </div>
-  <div id="calculator-container" class="container" style="display:none;">
+  <div id="calculator-container" class="container hidden">
     <div class="autor-info">Vytvoril Bruno</div>
     <h1 id="mainTitle">Šťastné a veselé vianoce</h1>
     <h2 id="welcomeMessage"></h2>

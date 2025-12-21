@@ -518,3 +518,8 @@ body.dark-mode .collapsible-content {
 .toggle-note-btn.dark-mode:hover {
   background-color: #70777d;
 }
+
+/* Utility Classes */
+.hidden {
+  display: none;
+}

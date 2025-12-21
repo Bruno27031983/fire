@@ -86,8 +86,8 @@ auth.onAuthStateChanged(user => {
 
   if (user) {
     document.getElementById('auth-message').textContent = "Prihlásený: " + user.email;
-    authContainer.style.display = "none";
-    calculatorContainer.style.display = "block";
+    authContainer.classList.add('hidden');
+    calculatorContainer.classList.remove('hidden');
 
     const storedMonth = localStorage.getItem('currentMonth');
     const storedYear = localStorage.getItem('currentYear');
@@ -132,8 +132,8 @@ auth.onAuthStateChanged(user => {
 
   } else {
     document.getElementById('auth-message').textContent = "Žiadny používateľ nie je prihlásený.";
-    authContainer.style.display = "block";
-    calculatorContainer.style.display = "none";
+    authContainer.classList.remove('hidden');
+    calculatorContainer.classList.add('hidden');
     monthData = {};
     workDays.innerHTML = '';
     totalSalaryDiv.innerHTML = '';
