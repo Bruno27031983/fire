@@ -1,12 +1,13 @@
 // Definovanie názvu cache a zoznamu URL, ktoré chceme cache-ovať
-const CACHE_NAME = 'brunos-calculator-cache-v4';
+const CACHE_NAME = 'brunos-calculator-cache-v5';
 const urlsToCache = [
   './',               // Hlavná stránka
   './index.html',
+  './styles.css',     // Štýly
+  './app.js',         // Aplikačná logika
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
-  // Pridajte ďalšie súbory, ktoré chcete cache-ovať (CSS, JS, obrázky, ...)
 ];
 
 // Inštalácia Service Worker a cacheovanie zdrojov
