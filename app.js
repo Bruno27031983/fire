@@ -347,6 +347,10 @@ function login() {
 }
 
 function logout() {
+  // Vymaž offline auth data
+  localStorage.removeItem('lastAuthUser');
+  localStorage.setItem('offlineMode', 'false');
+
   auth.signOut()
     .then(() => {
       showSafeAlert("Odhlásenie úspešné!");
@@ -385,7 +389,7 @@ function forgotPassword() {
     });
 }
 
-// Auth State Change
+// Auth State Change with Offline Support
 auth.onAuthStateChanged(user => {
   const authContainer = document.getElementById('auth-container');
   const calculatorContainer = document.getElementById('calculator-container');
@@ -395,7 +399,27 @@ auth.onAuthStateChanged(user => {
     firestoreListenerUnsubscribe = null;
   }
 
+  // OFFLINE SUPPORT: Ak nie je user (offline), check localStorage
+  if (!user) {
+    const lastAuthUser = localStorage.getItem('lastAuthUser');
+    const offlineMode = localStorage.getItem('offlineMode');
+
+    if (lastAuthUser && offlineMode === 'true') {
+      // Offline režim - zobraz data z localStorage
+      document.getElementById('auth-message').textContent = "Offline režim: " + lastAuthUser;
+      authContainer.classList.add('hidden');
+      calculatorContainer.classList.remove('hidden');
+
+      // Načítaj všetko z localStorage (bez Firebase)
+      loadOfflineData();
+      return; // Skonči tu, nevolaj Firebase operácie
+    }
+  }
+
   if (user) {
+    // Online režim - normálne prihlásenie
+    localStorage.setItem('lastAuthUser', user.email);
+    localStorage.setItem('offlineMode', 'false');
     document.getElementById('auth-message').textContent = "Prihlásený: " + user.email;
     authContainer.classList.add('hidden');
     calculatorContainer.classList.remove('hidden');
@@ -442,14 +466,76 @@ auth.onAuthStateChanged(user => {
     }).catch(err => { console.error("Chyba pri kontrole dokumentu:", err); });
 
   } else {
-    document.getElementById('auth-message').textContent = "Žiadny používateľ nie je prihlásený.";
-    authContainer.classList.remove('hidden');
-    calculatorContainer.classList.add('hidden');
-    monthData = {};
-    workDays.replaceChildren();
-    totalSalaryDiv.textContent = '';
-    updateWelcomeMessage();
+    // User=null môže znamenať: 1) odhlásený 2) offline
+    // Ak nie je lastAuthUser, je to skutočný logout
+    const lastAuthUser = localStorage.getItem('lastAuthUser');
+
+    if (!lastAuthUser) {
+      // Skutočný logout - vymaž všetko
+      document.getElementById('auth-message').textContent = "Žiadny používateľ nie je prihlásený.";
+      authContainer.classList.remove('hidden');
+      calculatorContainer.classList.add('hidden');
+      monthData = {};
+      workDays.replaceChildren();
+      totalSalaryDiv.textContent = '';
+      updateWelcomeMessage();
+      localStorage.setItem('offlineMode', 'false');
+    }
+    // Inak je offline - loadOfflineData() sa už zavolalo vyššie
   }
+});
+
+// Offline Data Loader (bez Firebase)
+function loadOfflineData() {
+  try {
+    // Nastav UI z localStorage
+    const storedMonth = localStorage.getItem('currentMonth');
+    const storedYear = localStorage.getItem('currentYear');
+    const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
+    const currentDate = new Date();
+
+    currentMonth = storedMonth !== null ? parseInt(storedMonth) : currentDate.getMonth();
+    currentYear = storedYear !== null ? parseInt(storedYear) : currentDate.getFullYear();
+
+    monthSelect.value = currentMonth;
+    populateYearSelect();
+    yearSelect.value = currentYear;
+
+    applyDarkMode(darkMode);
+
+    hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10;
+    taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02;
+    decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1;
+    employeeName = JSON.parse(localStorage.getItem('employeeName')) || '';
+
+    hourlyWageInput.value = hourlyWage;
+    taxRateInput.value = taxRate * 100;
+    decimalPlacesSelect.value = decimalPlaces;
+    employeeNameInput.value = employeeName;
+
+    // Načítaj work data z localStorage
+    loadFromLocalStorage();
+
+    showSaveNotification("📴 Offline režim: Data načítané z lokálneho úložiska", "warning");
+
+    console.log('[Offline Mode] Data načítané z localStorage');
+  } catch (error) {
+    console.error('[Offline Mode] Chyba pri načítavaní:', error);
+    showSaveNotification("Chyba pri načítavaní offline dát", "error");
+  }
+}
+
+// Detekcia online/offline stavu
+window.addEventListener('online', () => {
+  localStorage.setItem('offlineMode', 'false');
+  showSaveNotification("✅ Online: Pripojenie obnovené", "success");
+  // Reload stránku aby sa Firebase znova pripojil
+  setTimeout(() => location.reload(), 1000);
+});
+
+window.addEventListener('offline', () => {
+  localStorage.setItem('offlineMode', 'true');
+  showSaveNotification("📴 Offline režim aktivovaný", "warning");
 });
 
 // Utility funkcie
