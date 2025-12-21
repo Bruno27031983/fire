@@ -627,8 +627,8 @@ function setupFirestoreListener() {
           noteVisible: day.noteVisible === true
         }));
 
-        // Ulož aj pending dáta do localStorage
-        saveToLocalStorage();
+        // Ulož aj pending dáta do localStorage (bez triggerovania Firebase)
+        saveToLocalStorage(true);
       }
       return;
     }
@@ -753,10 +753,11 @@ function setupFirestoreListener() {
         updateDataSize();
 
         // DÔLEŽITÉ: Ulož do localStorage aby boli dáta dostupné v offline režime
-        saveToLocalStorage();
+        saveToLocalStorage(true);
 
         if (!docSnap.metadata.fromCache) {
-          showSaveNotification("Dáta synchronizované");
+          // Zobraz notifikáciu len ak sa skutočne zmenili dáta
+          console.log('[Firebase] Dáta synchronizované z cloudu');
         }
 
       } catch (processError) {
@@ -834,7 +835,7 @@ async function saveToFirebase() {
 
 // VYLEPŠENÉ ukladanie do Local Storage
 let saveTimeout = null;
-function saveToLocalStorage() {
+function saveToLocalStorage(skipFirebase = false) {
   try {
     if (!monthData) monthData = {};
     if (!monthData[currentYear]) monthData[currentYear] = {};
@@ -865,14 +866,16 @@ function saveToLocalStorage() {
     localStorage.setItem('workDaysData', serializedMonthData);
     updateDataSize();
 
-    // Debounce Firebase save
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      saveToFirebase();
-      if (!navigator.onLine) {
-        showSaveNotification("Offline: Zmeny uložené lokálne", "warning");
-      }
-    }, 1000);
+    // Debounce Firebase save - SKIP ak volané z Firebase listenera
+    if (!skipFirebase) {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        saveToFirebase();
+        if (!navigator.onLine) {
+          showSaveNotification("Offline: Zmeny uložené lokálne", "warning");
+        }
+      }, 1000);
+    }
 
   } catch (error) {
     console.error('Chyba pri ukladaní:', error);
