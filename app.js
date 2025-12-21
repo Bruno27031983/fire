@@ -5,8 +5,6 @@ try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', t
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Offline Persistence je automaticky zapnutá v Firebase 8+
-
 // Globálne premenné
 let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate;
 let monthData = {};
@@ -389,8 +387,28 @@ function forgotPassword() {
     });
 }
 
-// Auth State Change with Offline Support
-auth.onAuthStateChanged(user => {
+// ========================================
+// INIT APP - Zapnutie Firestore persistence a Auth
+// ========================================
+async function initApp() {
+  // KROK 1: Zapni Firestore offline persistence (IndexedDB)
+  // MUSÍ byť zavolané PRED prvým použitím Firestore (onSnapshot, get, set, atď.)
+  try {
+    await db.enablePersistence({ synchronizeTabs: true });
+    console.log('[Firestore] IndexedDB persistence ON');
+  } catch (err) {
+    if (err.code === 'failed-precondition') {
+      console.warn('[Firestore] Persistence nejde: viac tabov.');
+    } else if (err.code === 'unimplemented') {
+      console.warn('[Firestore] Persistence nepodporovaná.');
+    } else {
+      console.warn('[Firestore] Persistence error:', err);
+    }
+  }
+
+  // KROK 2: Nastav Auth State Change listener
+  // Auth State Change with Offline Support
+  auth.onAuthStateChanged(user => {
   const authContainer = document.getElementById('auth-container');
   const calculatorContainer = document.getElementById('calculator-container');
 
@@ -502,7 +520,8 @@ auth.onAuthStateChanged(user => {
     }
     // Inak je offline - loadOfflineData() sa už zavolalo vyššie
   }
-});
+  });
+}
 
 // Offline Data Loader (bez Firebase)
 function loadOfflineData() {
@@ -611,6 +630,13 @@ function setupFirestoreListener() {
   firestoreListenerUnsubscribe = docRef.onSnapshot((docSnap) => {
     const hasPending = docSnap.metadata.hasPendingWrites;
     const activeElementId = document.activeElement?.id;
+
+    // DÔLEŽITÉ: Ak doc neexistuje a snapshot je z cache / sme offline,
+    // NESMIEME prepisovať localStorage prázdnymi dátami.
+    if (!docSnap.exists && (docSnap.metadata.fromCache || !navigator.onLine)) {
+      console.log('[Firestore] doc neexistuje (cache/offline) -> neprepisujem localStorage');
+      return;
+    }
 
     // Ak ide o náš vlastný zápis, neaktualizujeme UI
     if (hasPending) {
@@ -765,16 +791,57 @@ function setupFirestoreListener() {
         showSaveNotification("Chyba: Nesprávny formát dát z Firebase", "error");
       }
     } else {
+      // Document neexistuje v Firestore
+      // Skontroluj, či už máme lokálne dáta - ak áno, NEMAŽ ich
+      let localData = {};
+      try {
+        const storedMonthData = localStorage.getItem('workDaysData');
+        localData = storedMonthData ? JSON.parse(storedMonthData) : {};
+      } catch (e) {
+        console.error('[Firestore] Chyba pri parsovaní workDaysData z localStorage:', e);
+        localData = {};
+      }
+
+      const hasLocalDataForMonth =
+        localData?.[currentYear]?.[currentMonth] &&
+        Array.isArray(localData[currentYear][currentMonth]) &&
+        localData[currentYear][currentMonth].length > 0;
+
       if (!monthData) monthData = {};
       if (!monthData[currentYear]) monthData[currentYear] = {};
-      monthData[currentYear][currentMonth] = [];
-      localStorage.setItem('workDaysData', JSON.stringify(monthData));
 
-      hourlyWage = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10;
-      taxRate = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02;
-      const darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
-      decimalPlaces = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1;
-      employeeName = JSON.parse(localStorage.getItem('employeeName')) || '';
+      // Nastav prázdny mesiac len ak:
+      // 1. Ide o server-confirmed stav (!fromCache)
+      // 2. A lokálne pre tento mesiac ešte nemáme žiadne dáta
+      if (!docSnap.metadata.fromCache && !hasLocalDataForMonth) {
+        console.log('[Firestore] Server potvrdil, že doc neexistuje - vytváram prázdny mesiac');
+        monthData[currentYear][currentMonth] = [];
+        localStorage.setItem('workDaysData', JSON.stringify(monthData));
+      } else if (hasLocalDataForMonth) {
+        // Máme lokálne dáta - použijeme ich namiesto prázdneho poľa
+        console.log('[Firestore] doc neexistuje, ale máme lokálne dáta - ponechávam ich');
+        monthData[currentYear][currentMonth] = localData[currentYear][currentMonth];
+      } else {
+        // fromCache a žiadne lokálne dáta - nedotkneme sa localStorage
+        console.log('[Firestore] doc neexistuje (fromCache) - nedotýkam sa localStorage');
+        monthData[currentYear][currentMonth] = monthData[currentYear][currentMonth] || [];
+      }
+
+      let hourlyWageLS = 10, taxRateLS = 0.02, darkModeLS = false, decimalPlacesLS = 1, employeeNameLS = '';
+      try {
+        hourlyWageLS = parseFloat(JSON.parse(localStorage.getItem('hourlyWage'))) || 10;
+        taxRateLS = parseFloat(JSON.parse(localStorage.getItem('taxRate'))) / 100 || 0.02;
+        darkModeLS = JSON.parse(localStorage.getItem('darkMode')) || false;
+        decimalPlacesLS = parseInt(JSON.parse(localStorage.getItem('decimalPlaces'))) || 1;
+        employeeNameLS = JSON.parse(localStorage.getItem('employeeName')) || '';
+      } catch (e) {
+        console.error('[Firestore] Chyba pri parsovaní nastavení z localStorage:', e);
+      }
+
+      hourlyWage = hourlyWageLS;
+      taxRate = taxRateLS;
+      decimalPlaces = decimalPlacesLS;
+      employeeName = employeeNameLS;
 
       hourlyWageInput.value = hourlyWage;
       taxRateInput.value = taxRate * 100;
@@ -783,7 +850,7 @@ function setupFirestoreListener() {
 
       createTable();
       calculateTotal();
-      applyDarkMode(darkMode);
+      applyDarkMode(darkModeLS);
       updateWelcomeMessage();
       updateDataSize();
     }
@@ -2171,3 +2238,8 @@ function initEventListeners() {
 
 // Funkcie insertCurrentTime, toggleNote, resetRow, handleInput, handleBreakInput, handleNoteInput
 // sú teraz volané cez event delegation, takže už nie sú potrebné ako window.* exports
+
+// ========================================
+// ŠTART APLIKÁCIE
+// ========================================
+initApp();
