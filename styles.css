@@ -524,3 +524,36 @@ body.dark-mode .collapsible-content {
 .hidden {
   display: none;
 }
+
+/* Input Validation Styles */
+input.validation-error,
+textarea.validation-error,
+select.validation-error {
+  border-color: #f44336 !important;
+  border-width: 2px !important;
+  animation: shake 0.3s ease-in-out;
+}
+
+input.validation-success,
+textarea.validation-success {
+  border-color: #4CAF50 !important;
+}
+
+/* Shake animation pre validation errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Dark mode validation colors */
+body.dark-mode input.validation-error,
+body.dark-mode textarea.validation-error,
+body.dark-mode select.validation-error {
+  border-color: #ff5252 !important;
+}
+
+body.dark-mode input.validation-success,
+body.dark-mode textarea.validation-success {
+  border-color: #6fbf7a !important;
+}

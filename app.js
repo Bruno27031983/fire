@@ -32,21 +32,233 @@ const employeeNameInput = document.getElementById('employeeNameInput');
 const MAX_DATA_SIZE = 4 * 1024 * 1024;
 const MAX_DATA_SIZE_KB = MAX_DATA_SIZE / 1024;
 
+// ========================================
+// INPUT VALIDATION UTILITIES
+// ========================================
+
+const VALIDATION_RULES = {
+  TIME_REGEX: /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/,
+  EMAIL_REGEX: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  MAX_NOTE_LENGTH: 500,
+  MIN_PASSWORD_LENGTH: 8,
+  MAX_HOURLY_WAGE: 100,
+  MAX_TAX_RATE: 100,
+  MAX_BREAK_HOURS: 12
+};
+
+// Validácia času (HH:MM)
+function validateTime(timeString) {
+  if (!timeString || timeString.trim() === '') {
+    return { valid: true, value: '', error: null }; // Prázdne je OK
+  }
+
+  const trimmed = timeString.trim();
+
+  if (!VALIDATION_RULES.TIME_REGEX.test(trimmed)) {
+    return {
+      valid: false,
+      value: trimmed,
+      error: 'Neplatný formát času. Použite HH:MM (napr. 08:30)'
+    };
+  }
+
+  const [hours, minutes] = trimmed.split(':').map(Number);
+
+  if (hours < 0 || hours > 23) {
+    return { valid: false, value: trimmed, error: 'Hodiny musia byť 0-23' };
+  }
+
+  if (minutes < 0 || minutes > 59) {
+    return { valid: false, value: trimmed, error: 'Minúty musia byť 0-59' };
+  }
+
+  return { valid: true, value: trimmed, error: null };
+}
+
+// Validácia čísla s rozsahom
+function validateNumber(value, min = 0, max = Infinity, fieldName = 'Hodnota') {
+  if (value === '' || value === null || value === undefined) {
+    return { valid: true, value: '', error: null }; // Prázdne je OK
+  }
+
+  const num = parseFloat(value);
+
+  if (isNaN(num)) {
+    return { valid: false, value, error: `${fieldName} musí byť číslo` };
+  }
+
+  if (num < min) {
+    return { valid: false, value, error: `${fieldName} nesmie byť menšia ako ${min}` };
+  }
+
+  if (num > max) {
+    return { valid: false, value, error: `${fieldName} nesmie byť väčšia ako ${max}` };
+  }
+
+  return { valid: true, value: num, error: null };
+}
+
+// Validácia poznámky
+function validateNote(noteText) {
+  if (!noteText || noteText.trim() === '') {
+    return { valid: true, value: '', error: null, length: 0 };
+  }
+
+  const trimmed = noteText.trim();
+  const length = trimmed.length;
+
+  if (length > VALIDATION_RULES.MAX_NOTE_LENGTH) {
+    return {
+      valid: false,
+      value: trimmed.substring(0, VALIDATION_RULES.MAX_NOTE_LENGTH),
+      error: `Poznámka je príliš dlhá (max ${VALIDATION_RULES.MAX_NOTE_LENGTH} znakov)`,
+      length: VALIDATION_RULES.MAX_NOTE_LENGTH
+    };
+  }
+
+  return { valid: true, value: trimmed, error: null, length };
+}
+
+// Validácia emailu
+function validateEmail(email) {
+  if (!email || email.trim() === '') {
+    return { valid: false, value: '', error: 'Email je povinný' };
+  }
+
+  const trimmed = email.trim().toLowerCase();
+
+  if (trimmed.length > 254) {
+    return { valid: false, value: trimmed, error: 'Email je príliš dlhý' };
+  }
+
+  if (!VALIDATION_RULES.EMAIL_REGEX.test(trimmed)) {
+    return { valid: false, value: trimmed, error: 'Neplatný formát emailu' };
+  }
+
+  return { valid: true, value: trimmed, error: null };
+}
+
+// Validácia hesla
+function validatePassword(password) {
+  if (!password || password.length === 0) {
+    return { valid: false, value: '', error: 'Heslo je povinné' };
+  }
+
+  if (password.length < VALIDATION_RULES.MIN_PASSWORD_LENGTH) {
+    return {
+      valid: false,
+      value: password,
+      error: `Heslo musí mať aspoň ${VALIDATION_RULES.MIN_PASSWORD_LENGTH} znakov`
+    };
+  }
+
+  // Kontrola zložitosti (aspoň 1 číslo a 1 písmeno)
+  const hasNumber = /\d/.test(password);
+  const hasLetter = /[a-zA-Z]/.test(password);
+
+  if (!hasNumber || !hasLetter) {
+    return {
+      valid: false,
+      value: password,
+      error: 'Heslo musí obsahovať aspoň 1 číslo a 1 písmeno'
+    };
+  }
+
+  return { valid: true, value: password, error: null };
+}
+
+// Zobrazenie validačnej chyby
+function showValidationError(element, errorMessage) {
+  if (!element) return;
+
+  element.classList.add('validation-error');
+  element.classList.remove('validation-success');
+  element.title = errorMessage;
+
+  // Odstráň error class po 3 sekundách
+  setTimeout(() => {
+    element.classList.remove('validation-error');
+    if (!element.title || element.title === errorMessage) {
+      element.title = '';
+    }
+  }, 3000);
+}
+
+// Odstránenie validačnej chyby
+function clearValidationError(element) {
+  if (!element) return;
+  element.classList.remove('validation-error');
+  element.classList.add('validation-success');
+  element.title = '';
+
+  // Odstráň success class po 1 sekunde
+  setTimeout(() => {
+    element.classList.remove('validation-success');
+  }, 1000);
+}
+
 // Auth funkcie
 function register() {
-  const email = document.getElementById('registerEmail').value;
-  const password = document.getElementById('registerPassword').value;
-  auth.createUserWithEmailAndPassword(email, password)
+  const emailInput = document.getElementById('registerEmail');
+  const passwordInput = document.getElementById('registerPassword');
+
+  const emailValidation = validateEmail(emailInput.value);
+  const passwordValidation = validatePassword(passwordInput.value);
+
+  // Validácia emailu
+  if (!emailValidation.valid) {
+    showValidationError(emailInput, emailValidation.error);
+    alert(emailValidation.error);
+    return;
+  }
+
+  // Validácia hesla
+  if (!passwordValidation.valid) {
+    showValidationError(passwordInput, passwordValidation.error);
+    alert(passwordValidation.error);
+    return;
+  }
+
+  clearValidationError(emailInput);
+  clearValidationError(passwordInput);
+
+  auth.createUserWithEmailAndPassword(emailValidation.value, passwordValidation.value)
     .then(() => { alert("Registrácia úspešná!"); })
-    .catch((error) => { console.error("Chyba pri registrácii:", error.message); alert("Chyba pri registrácii: " + error.message); });
+    .catch((error) => {
+      console.error("Chyba pri registrácii:", error.message);
+      alert("Chyba pri registrácii: " + error.message);
+    });
 }
 
 function login() {
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-  auth.signInWithEmailAndPassword(email, password)
+  const emailInput = document.getElementById('loginEmail');
+  const passwordInput = document.getElementById('loginPassword');
+
+  const emailValidation = validateEmail(emailInput.value);
+
+  // Validácia emailu
+  if (!emailValidation.valid) {
+    showValidationError(emailInput, emailValidation.error);
+    alert(emailValidation.error);
+    return;
+  }
+
+  // Pre login nekontrolujeme zložitosť hesla, len či je vyplnené
+  if (!passwordInput.value || passwordInput.value.trim() === '') {
+    showValidationError(passwordInput, 'Heslo je povinné');
+    alert('Heslo je povinné');
+    return;
+  }
+
+  clearValidationError(emailInput);
+  clearValidationError(passwordInput);
+
+  auth.signInWithEmailAndPassword(emailValidation.value, passwordInput.value)
     .then(() => { alert("Prihlásenie úspešné!"); })
-    .catch((error) => { console.error("Chyba pri prihlásení:", error.message); alert("Chyba pri prihlásení: " + error.message); });
+    .catch((error) => {
+      console.error("Chyba pri prihlásení:", error.message);
+      alert("Chyba pri prihlásení: " + error.message);
+    });
 }
 
 function logout() {
@@ -834,7 +1046,7 @@ function handleInput(input, nextId, day) {
   // Označ že pole sa edituje
   isUserEditing = true;
   pendingChanges.add(input.id);
-  
+
   if (editingTimeout) clearTimeout(editingTimeout);
   editingTimeout = setTimeout(() => {
     isUserEditing = false;
@@ -842,11 +1054,23 @@ function handleInput(input, nextId, day) {
   }, 2000);
 
   formatInput(input);
+
+  // Validácia času pre tel inputy
+  if (input.type === 'tel' && input.value.trim() !== '') {
+    const timeValidation = validateTime(input.value);
+    if (!timeValidation.valid) {
+      showValidationError(input, timeValidation.error);
+      // Pokračuj s uložením aj napriek chybe (user môže opraviť neskôr)
+    } else {
+      clearValidationError(input);
+    }
+  }
+
   updateMonthDataFromInput(input, day);
   calculateRow(day);
   calculateTotal();
   saveToLocalStorage();
-  
+
   if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
     moveNext(input, nextId);
   }
@@ -856,12 +1080,27 @@ function handleBreakInput(day) {
   const input = document.getElementById(`break-${currentYear}-${currentMonth}-${day}`);
   isUserEditing = true;
   pendingChanges.add(input.id);
-  
+
   if (editingTimeout) clearTimeout(editingTimeout);
   editingTimeout = setTimeout(() => {
     isUserEditing = false;
     pendingChanges.delete(input.id);
   }, 2000);
+
+  // Validácia prestávky
+  if (input.value.trim() !== '') {
+    const breakValidation = validateNumber(
+      input.value,
+      0,
+      VALIDATION_RULES.MAX_BREAK_HOURS,
+      'Prestávka'
+    );
+    if (!breakValidation.valid) {
+      showValidationError(input, breakValidation.error);
+    } else {
+      clearValidationError(input);
+    }
+  }
 
   updateMonthDataFromInput(input, day);
   calculateRow(day);
@@ -872,16 +1111,41 @@ function handleBreakInput(day) {
 function handleNoteInput(textarea, day) {
   isUserEditing = true;
   pendingChanges.add(textarea.id);
-  
+
   if (editingTimeout) clearTimeout(editingTimeout);
   editingTimeout = setTimeout(() => {
     isUserEditing = false;
     pendingChanges.delete(textarea.id);
   }, 2000);
 
+  // Validácia poznámky (length limit)
+  const noteValidation = validateNote(textarea.value);
+  if (!noteValidation.valid) {
+    showValidationError(textarea, noteValidation.error);
+    // Automaticky skráť poznámku na max dĺžku
+    textarea.value = noteValidation.value;
+  } else {
+    clearValidationError(textarea);
+  }
+
+  // Zobraz počítadlo znakov (voliteľné)
+  updateNoteCharacterCount(textarea, noteValidation.length);
+
   updateMonthDataFromInput(textarea, day);
   saveToLocalStorage();
   updateNoteIndicator(day);
+}
+
+// Helper funkcia pre zobrazenie počítadla znakov
+function updateNoteCharacterCount(textarea, length) {
+  // Môžeme pridať counter element vedľa textarea (voliteľné)
+  const maxLength = VALIDATION_RULES.MAX_NOTE_LENGTH;
+  if (length > maxLength * 0.9) {
+    // Varovanie ak je blízko limitu
+    textarea.title = `Poznámka: ${length}/${maxLength} znakov`;
+  } else {
+    textarea.title = '';
+  }
 }
 
 function updateMonthDataFromInput(input, day) {
@@ -1349,25 +1613,45 @@ function updateEmployeeName() {
 }
 
 function updateSettings() {
-  const newHourlyWageStr = hourlyWageInput.value;
-  const newTaxRateStr = taxRateInput.value;
-  const newHourlyWage = parseFloat(newHourlyWageStr);
-  const newTaxRatePercent = parseFloat(newTaxRateStr);
   let settingsChanged = false;
 
-  if (!isNaN(newHourlyWage) && newHourlyWage >= 0) {
+  // Validácia hodinovej mzdy
+  const wageValidation = validateNumber(
+    hourlyWageInput.value,
+    0,
+    VALIDATION_RULES.MAX_HOURLY_WAGE,
+    'Hodinová mzda'
+  );
+
+  if (wageValidation.valid && wageValidation.value !== '') {
+    const newHourlyWage = wageValidation.value;
     if (hourlyWage !== newHourlyWage) {
       hourlyWage = newHourlyWage;
       settingsChanged = true;
     }
+    clearValidationError(hourlyWageInput);
+  } else if (!wageValidation.valid) {
+    showValidationError(hourlyWageInput, wageValidation.error);
   }
 
-  if (!isNaN(newTaxRatePercent) && newTaxRatePercent >= 0 && newTaxRatePercent <= 100) {
+  // Validácia daňovej sadzby
+  const taxValidation = validateNumber(
+    taxRateInput.value,
+    0,
+    VALIDATION_RULES.MAX_TAX_RATE,
+    'Daňová sadzba'
+  );
+
+  if (taxValidation.valid && taxValidation.value !== '') {
+    const newTaxRatePercent = taxValidation.value;
     const newTaxRateDecimal = newTaxRatePercent / 100;
     if (taxRate !== newTaxRateDecimal) {
       taxRate = newTaxRateDecimal;
       settingsChanged = true;
     }
+    clearValidationError(taxRateInput);
+  } else if (!taxValidation.valid) {
+    showValidationError(taxRateInput, taxValidation.error);
   }
 
   if (settingsChanged) {
