@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
 
-  <!-- Security Headers -->
+  <!-- Security Headers - OWASP Recommendations -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://www.google.com;
@@ -24,14 +24,21 @@
       https://www.gstatic.com
       https://cdnjs.cloudflare.com;
     frame-src https://www.google.com https://recaptcha.google.com;
+    frame-ancestors 'none';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     upgrade-insecure-requests;
   ">
-  <!-- Note: X-Frame-Options must be set as HTTP header, not meta tag -->
+
+  <!-- OWASP Secure Headers -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="referrer" content="no-referrer">
+
+  <!-- Poznámka: Nasledujúce hlavičky musia byť nastavené cez HTTP server (nie meta tag): -->
+  <!-- - X-Frame-Options: DENY (redundantné s CSP frame-ancestors, ale pre legacy browsers) -->
+  <!-- - Strict-Transport-Security: max-age=31536000; includeSubDomains; preload (iba HTTPS!) -->
+  <!-- - Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=() -->
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">

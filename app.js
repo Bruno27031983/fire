@@ -17,6 +17,7 @@ let localChangeTimestamp = 0;
 let isUserEditing = false;
 let editingTimeout = null;
 let pendingChanges = new Set(); // Track ktoré polia sa práve menia
+let eventListenersAttached = false; // Guard pre event delegation
 
 const workDays = document.getElementById('workDays');
 const totalSalaryDiv = document.getElementById('totalSalary');
@@ -128,8 +129,8 @@ auth.onAuthStateChanged(user => {
     authContainer.classList.remove('hidden');
     calculatorContainer.classList.add('hidden');
     monthData = {};
-    workDays.innerHTML = '';
-    totalSalaryDiv.innerHTML = '';
+    workDays.replaceChildren();
+    totalSalaryDiv.textContent = '';
     updateWelcomeMessage();
   }
 });
@@ -1542,8 +1543,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function populateYearSelect() {
   const startYear = 2020;
   const endYear = new Date().getFullYear() + 2;
-  yearSelect.innerHTML = '';
-  
+  yearSelect.replaceChildren();
+
   for (let year = startYear; year <= endYear; year++) {
     const option = document.createElement('option');
     option.value = year;
@@ -1564,6 +1565,21 @@ if (document.readyState === 'loading') {
 }
 
 function initEventListeners() {
+  // Guard: zabráň viacnásobnej inicializácii event listenerov
+  if (eventListenersAttached) {
+    console.log('[Event Listeners] Už boli inicializované, preskakovanie...');
+    return;
+  }
+
+  // Validácia kritických elementov pred pripojením listenerov
+  if (!workDays) {
+    console.error('[Event Listeners] CHYBA: workDays element neexistuje! Event delegation nemôže byť inicializovaná.');
+    // Guard NENASTAVUJEME - umožníme ďalší pokus po načítaní DOM
+    return;
+  }
+
+  console.log('[Event Listeners] Inicializácia event listenerov...');
+
   // Auth buttons
   const registerBtn = document.getElementById('registerBtn');
   const loginBtn = document.getElementById('loginBtn');
@@ -1644,6 +1660,10 @@ function initEventListeners() {
       }
     });
   }
+
+  // Guard nastavený až PO úspešnom pripojení všetkých listenerov
+  eventListenersAttached = true;
+  console.log('[Event Listeners] ✓ Všetky event listenery úspešne inicializované.');
 }
 
 // Funkcie insertCurrentTime, toggleNote, resetRow, handleInput, handleBreakInput, handleNoteInput
