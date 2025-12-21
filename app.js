@@ -395,7 +395,6 @@ async function initApp() {
   // MUSÍ byť zavolané PRED prvým použitím Firestore (onSnapshot, get, set, atď.)
   try {
     await db.enablePersistence({ synchronizeTabs: true });
-    console.log('[Firestore] IndexedDB persistence ON');
   } catch (err) {
     if (err.code === 'failed-precondition') {
       console.warn('[Firestore] Persistence nejde: viac tabov.');
@@ -412,13 +411,6 @@ async function initApp() {
   const authContainer = document.getElementById('auth-container');
   const calculatorContainer = document.getElementById('calculator-container');
 
-  console.log('[Auth] onAuthStateChanged triggered:', {
-    user: user ? user.email : null,
-    online: navigator.onLine,
-    lastAuthUser: localStorage.getItem('lastAuthUser'),
-    offlineMode: localStorage.getItem('offlineMode')
-  });
-
   if (firestoreListenerUnsubscribe) {
     firestoreListenerUnsubscribe();
     firestoreListenerUnsubscribe = null;
@@ -429,15 +421,8 @@ async function initApp() {
     const lastAuthUser = localStorage.getItem('lastAuthUser');
     const isOffline = !navigator.onLine;
 
-    console.log('[Auth] User is null. Checking offline mode...', {
-      lastAuthUser,
-      isOffline,
-      hasLocalStorage: !!lastAuthUser
-    });
-
     // Ak máme lastAuthUser a sme offline, alebo explicitne offlineMode
     if (lastAuthUser && isOffline) {
-      console.log('[Auth] ✅ Aktivujem offline režim!');
       // Offline režim - zobraz data z localStorage
       document.getElementById('auth-message').textContent = "Offline režim: " + lastAuthUser;
       authContainer.classList.add('hidden');
@@ -446,10 +431,6 @@ async function initApp() {
       // Načítaj všetko z localStorage (bez Firebase)
       loadOfflineData();
       return; // Skonči tu, nevolaj Firebase operácie
-    } else {
-      console.log('[Auth] ❌ Offline režim neaktivovaný:', {
-        reason: !lastAuthUser ? 'No lastAuthUser' : 'Online mode'
-      });
     }
   }
 
@@ -555,8 +536,6 @@ function loadOfflineData() {
     loadFromLocalStorage();
 
     showSaveNotification("📴 Offline režim: Data načítané z lokálneho úložiska", "warning");
-
-    console.log('[Offline Mode] Data načítané z localStorage');
   } catch (error) {
     console.error('[Offline Mode] Chyba pri načítavaní:', error);
     showSaveNotification("Chyba pri načítavaní offline dát", "error");
@@ -634,7 +613,6 @@ function setupFirestoreListener() {
     // DÔLEŽITÉ: Ak doc neexistuje a snapshot je z cache / sme offline,
     // NESMIEME prepisovať localStorage prázdnymi dátami.
     if (!docSnap.exists && (docSnap.metadata.fromCache || !navigator.onLine)) {
-      console.log('[Firestore] doc neexistuje (cache/offline) -> neprepisujem localStorage');
       return;
     }
 
@@ -661,14 +639,12 @@ function setupFirestoreListener() {
 
     // NOVÁ LOGIKA: Ak používateľ aktívne edituje, odložíme sync
     if (isUserEditing || pendingChanges.size > 0) {
-      console.log('Používateľ edituje, odloženie Firestore sync...');
       return;
     }
 
     // Overíme timestamp - ak je lokálna zmena čerstvejšia, ignorujeme Firebase
     const firestoreTimestamp = docSnap.data()?.timestamp?.toMillis() || 0;
     if (localChangeTimestamp > firestoreTimestamp && (Date.now() - localChangeTimestamp < 5000)) {
-      console.log('Lokálna zmena je čerstvejšia, ignorujem Firebase update');
       return;
     }
 
@@ -814,16 +790,13 @@ function setupFirestoreListener() {
       // 1. Ide o server-confirmed stav (!fromCache)
       // 2. A lokálne pre tento mesiac ešte nemáme žiadne dáta
       if (!docSnap.metadata.fromCache && !hasLocalDataForMonth) {
-        console.log('[Firestore] Server potvrdil, že doc neexistuje - vytváram prázdny mesiac');
         monthData[currentYear][currentMonth] = [];
         localStorage.setItem('workDaysData', JSON.stringify(monthData));
       } else if (hasLocalDataForMonth) {
         // Máme lokálne dáta - použijeme ich namiesto prázdneho poľa
-        console.log('[Firestore] doc neexistuje, ale máme lokálne dáta - ponechávam ich');
         monthData[currentYear][currentMonth] = localData[currentYear][currentMonth];
       } else {
         // fromCache a žiadne lokálne dáta - nedotkneme sa localStorage
-        console.log('[Firestore] doc neexistuje (fromCache) - nedotýkam sa localStorage');
         monthData[currentYear][currentMonth] = monthData[currentYear][currentMonth] || [];
       }
 
@@ -2137,7 +2110,6 @@ if (document.readyState === 'loading') {
 function initEventListeners() {
   // Guard: zabráň viacnásobnej inicializácii event listenerov
   if (eventListenersAttached) {
-    console.log('[Event Listeners] Už boli inicializované, preskakovanie...');
     return;
   }
 
@@ -2147,8 +2119,6 @@ function initEventListeners() {
     // Guard NENASTAVUJEME - umožníme ďalší pokus po načítaní DOM
     return;
   }
-
-  console.log('[Event Listeners] Inicializácia event listenerov...');
 
   // Auth buttons
   const registerBtn = document.getElementById('registerBtn');
@@ -2233,7 +2203,6 @@ function initEventListeners() {
 
   // Guard nastavený až PO úspešnom pripojení všetkých listenerov
   eventListenersAttached = true;
-  console.log('[Event Listeners] ✓ Všetky event listenery úspešne inicializované.');
 }
 
 // Funkcie insertCurrentTime, toggleNote, resetRow, handleInput, handleBreakInput, handleNoteInput
