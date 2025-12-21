@@ -1,5 +1,5 @@
 // Definovanie názvu cache a zoznamu URL, ktoré chceme cache-ovať
-const CACHE_NAME = 'brunos-calculator-cache-v11';
+const CACHE_NAME = 'brunos-calculator-cache-v12';
 const urlsToCache = [
   './',               // Hlavná stránka
   './index.html',
@@ -48,5 +48,6 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
 
 
