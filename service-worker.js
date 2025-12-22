@@ -1,12 +1,13 @@
 // service-worker.js
 
-const CACHE_VERSION = 'v19'; // Nezabudni zvýšiť verziu!
+// Zakaždým, keď niečo zmeníš v kóde (HTML, JS, CSS) alebo v tomto súbore,
+// ZVÝŠ TOTO ČÍSLO (v19 -> v20). Donúti to prehliadač stiahnuť novú verziu.
+const CACHE_VERSION = 'v20';
 const STATIC_CACHE = `brunos-calculator-static-${CACHE_VERSION}`;
-// Spojíme fonty a CDN do jednej "extern" cache, alebo ich necháme oddelené,
-// ale pre jednoduchosť stačí STATIC pre core app a RUNTIME pre zvyšok.
 const RUNTIME_CACHE = `brunos-calculator-runtime-${CACHE_VERSION}`;
 
-// 1. ZMENA: Do STATIC cache musíme dať VŠETKO kritické pre štart appky
+// Zoznam VŠETKÝCH súborov, ktoré aplikácia potrebuje pre offline beh.
+// Musia tu byť lokálne súbory AJ externé CDN linky (presne ako v index.html).
 const urlsToCache = [
   './',
   './index.html',
@@ -15,8 +16,8 @@ const urlsToCache = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-
-  // DÔLEŽITÉ: Tieto musia byť tu, aby sme mali istotu, že sú stiahnuté
+  
+  // EXTERNÉ KNIŽNICE (Firebase, PDF, Fonty)
   'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js',
@@ -26,57 +27,64 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js'
 ];
 
-// Inštalácia - Pre-caching (Stiahni všetko dôležité)
+// 1. INŠTALÁCIA: Stiahni všetko dôležité hneď na začiatku
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Sťahujem kritické súbory...');
+        console.log('[SW] Sťahujem kritické súbory...');
+        // addAll je atómová operácia - ak zlyhá jeden súbor, zlyhá celá inštalácia.
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()) // Okamžite aktivuj nový SW
   );
 });
 
-// Fetch - Stratégie
+// 2. FETCH: Stratégia Cache-First (Rýchlosť a Stabilita)
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Ignorujeme requesty, ktoré nie sú GET (napr. POST do Firestore)
+  // Ignorujeme POST požiadavky (zápisy do databázy) a iné ako GET
   if (request.method !== 'GET') return;
 
-  // Stratégia: Cache-First, falling back to Network
-  // Toto je najlepšie pre tvoju appku, pretože verzie súborov (v19, 9.22.1) sa nemenia.
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
+      // A) Máme to v cache? Super, vráť to. (Najrýchlejšie)
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      // Ak nie je v cache, skús sieť a ulož do Runtime cache
+      // B) Nemáme to? Stiahni zo siete.
       return fetch(request).then((networkResponse) => {
-        // Cache len platné odpovede a len externé skripty/fonty/obrázky
+        // Skontrolujeme, či je odpoveď platná
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
           return networkResponse;
         }
 
-        // Klonujeme odpoveď, lebo stream sa dá prečítať len raz
+        // Ak je to platná odpoveď (napr. obrázok alebo nový skript), ulož ju do Runtime cache pre budúcnosť
         const responseToCache = networkResponse.clone();
-
         caches.open(RUNTIME_CACHE).then((cache) => {
           cache.put(request, responseToCache);
         });
 
         return networkResponse;
       }).catch(() => {
-        // Offline fallback (voliteľné - napr. offline.html)
-        console.warn('Offline a súbor nie je v cache:', request.url);
+        // C) Sme offline a nemáme to v cache?
+        console.warn('[SW] Offline a súbor chýba v cache:', request.url);
+        
+        // OPRAVA CHYBY Z KONZOLY:
+        // Vrátime "falošnú" odpoveď, aby prehliadač nevyhodil "Uncaught TypeError"
+        // 408 Request Timeout je vhodný kód pre offline stav
+        return new Response('Offline - resource not available', { 
+          status: 408, 
+          statusText: 'Request Timeout (Offline)' 
+        });
       });
     })
   );
 });
 
-// Aktivácia - Čistenie
+// 3. AKTIVÁCIA: Vyčisti starý bordel (v19, v18...)
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [STATIC_CACHE, RUNTIME_CACHE];
   event.waitUntil(
@@ -84,11 +92,11 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhitelist.includes(cacheName)) {
-            console.log('Odstraňujem starú cache:', cacheName);
+            console.log('[SW] Odstraňujem starú cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()) // Prevezmi kontrolu nad stránkou ihneď
   );
 });
