@@ -196,27 +196,6 @@ function clearValidationError(element) {
 }
 
 // ========================================
-// HTML SANITIZATION FOR PDF EXPORT (XSS Prevention)
-// ========================================
-
-// Sanitizácia HTML znakov pre bezpečný PDF export
-// Ochrana pred CVE-2020-7691 a podobnými XSS zraniteľnosťami
-function sanitizeForPDF(text) {
-  if (!text || typeof text !== 'string') {
-    return '';
-  }
-
-  return text
-    .replace(/&/g, '&amp;')   // & najprv (aby sme neescapovali naše escape sekvencie)
-    .replace(/</g, '&lt;')    // < → &lt; (blokuje <script>)
-    .replace(/>/g, '&gt;')    // > → &gt; (blokuje </script>)
-    .replace(/"/g, '&quot;')  // " → &quot; (blokuje atribúty)
-    .replace(/'/g, '&#x27;')  // ' → &#x27; (blokuje atribúty)
-    .replace(/\//g, '&#x2F;') // / → &#x2F; (blokuje </script>)
-    .trim();                  // Odstráň medzery na začiatku/konci
-}
-
-// ========================================
 // SAFE ERROR HANDLING (Information Disclosure Prevention)
 // ========================================
 
@@ -1735,7 +1714,7 @@ function exportToPDF() {
         const workedTimeText = totalCell ? totalCell.textContent : 'N/A';
         const grossValue = grossInput ? parseFloat(grossInput.value).toFixed(2) : '0.00';
         const netValue = netInput ? parseFloat(netInput.value).toFixed(2) : '0.00';
-        const noteText = sanitizeForPDF(day.note || ''); // ✅ SANITIZED proti XSS
+        const noteText = day.note || '';
 
         const rowData = [
           `Deň ${dayNum} (${dayName})`,
@@ -1767,9 +1746,7 @@ function exportToPDF() {
     const totalTextContent = (totalSalaryDiv.textContent || '').split('\n');
     doc.text(totalTextContent, 14, finalY + 10);
 
-    // Sanitizuj meno zamestnanca pre file name (odstráň nebezpečné znaky)
-    const safeName = (employeeName || 'pracovnik').replace(/[^a-zA-Z0-9-_]/g, '_');
-    const pdfFileName = `Vykaz-${safeName}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
+    const pdfFileName = `Vykaz-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
     doc.save(pdfFileName);
     showSaveNotification("PDF exportované.");
   } catch (error) {
@@ -1810,7 +1787,7 @@ function sendPDF() {
       if (day.start || day.end || day.note) {
         const dayNum = index + 1;
         const dayName = getDayName(currentYear, currentMonth, dayNum);
-        const noteText = sanitizeForPDF(day.note || ''); // ✅ SANITIZED proti XSS
+        const noteText = day.note || '';
         const rowData = [
           `Deň ${dayNum} (${dayName})`,
           day.start || '-',
@@ -1845,9 +1822,7 @@ function sendPDF() {
     doc.text(summaryText, 14, finalY + 10);
 
     const pdfBlob = doc.output('blob');
-    // Sanitizuj meno zamestnanca pre file name (odstráň nebezpečné znaky)
-    const safeName = (employeeName || 'pracovnik').replace(/[^a-zA-Z0-9-_]/g, '_');
-    const pdfFileName = `Vykaz_odoslanie-${safeName}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
+    const pdfFileName = `Vykaz_odoslanie-${employeeName || 'pracovnik'}-${getMonthName(currentMonth)}-${currentYear}.pdf`;
     const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
