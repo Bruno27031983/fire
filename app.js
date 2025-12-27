@@ -1486,13 +1486,17 @@ function formatInput(input) {
   
   let value = input.value.replace(/[^\d:]/g, '');
 
-  // 4 číslice bez dvojbodky: "0830" → "08:30"
+  // 4 číslice bez dvojbodky: "0830" → "08:30", "1800" → "18:00"
   if (value.length === 4 && !value.includes(':')) {
     value = value.slice(0, 2) + ':' + value.slice(2);
   }
-  // 3 číslice bez dvojbodky: "830" → "8:30"
+  // 3 číslice bez dvojbodky: "830" → "8:30" (len ak sú minúty platné 00-59)
+  // "180" sa neformátuje (80 > 59), počká sa na 4. číslicu → "1800" → "18:00"
   else if (value.length === 3 && !value.includes(':')) {
-    value = value.slice(0, 1) + ':' + value.slice(1);
+    const minutes = parseInt(value.slice(1), 10);
+    if (minutes <= 59) {
+      value = value.slice(0, 1) + ':' + value.slice(1);
+    }
   }
 
   if (value.length > 5) {
