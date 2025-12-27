@@ -704,16 +704,16 @@ function setupFirestoreListener() {
         if (!monthData[currentYear]) monthData[currentYear] = {};
         
         // NOVÁ LOGIKA: Merge namiesto prepísania
+        // Použitie ?? (nullish coalescing) - prázdny string '' sa správne uloží
         const existingData = monthData[currentYear][currentMonth] || [];
         monthData[currentYear][currentMonth] = firebaseDaysData.map((day, idx) => {
           const existing = existingData[idx] || {};
-          // Zachovaj lokálne dáta ak sú novšie
           return {
-            start: day.start || existing.start || '',
-            end: day.end || existing.end || '',
-            breakTime: day.breakTime || existing.breakTime || '',
-            note: day.note || existing.note || '',
-            noteVisible: day.noteVisible === true || existing.noteVisible === true
+            start: day.start ?? existing.start ?? '',
+            end: day.end ?? existing.end ?? '',
+            breakTime: day.breakTime ?? existing.breakTime ?? '',
+            note: day.note ?? existing.note ?? '',
+            noteVisible: day.noteVisible ?? existing.noteVisible ?? false
           };
         });
 
