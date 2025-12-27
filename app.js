@@ -1,9 +1,55 @@
+// Firebase Modular SDK Imports
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import {
+  initializeFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check.js';
+
 // Firebase Config & Init
-const firebaseConfig = { apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo", authDomain: "bruno-3cee2.firebaseapp.com", projectId: "bruno-3cee2", storageBucket: "bruno-3cee2.appspot.com", messagingSenderId: "155545319308", appId: "1:155545319308:web:5da498ff1cd3e1833888a9" };
-firebase.initializeApp(firebaseConfig);
-try { firebase.appCheck().activate('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv', true); } catch (error) { console.warn("Chyba pri aktivácii Firebase App Check:", error); }
-const db = firebase.firestore();
-const auth = firebase.auth();
+const firebaseConfig = {
+  apiKey: "AIzaSyDWFiWPldB7aWPIuFhAmriAm_DR38rndIo",
+  authDomain: "bruno-3cee2.firebaseapp.com",
+  projectId: "bruno-3cee2",
+  storageBucket: "bruno-3cee2.appspot.com",
+  messagingSenderId: "155545319308",
+  appId: "1:155545319308:web:5da498ff1cd3e1833888a9"
+};
+
+const app = initializeApp(firebaseConfig);
+
+// App Check s reCAPTCHA v3
+try {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6LcagP8qAAAAAN3MIW5-ALzayoS57THfEvO1yUTv'),
+    isTokenAutoRefreshEnabled: true
+  });
+} catch (error) {
+  console.warn("Chyba pri aktivácii Firebase App Check:", error);
+}
+
+// Firestore s offline persistence (bez deprecation warning)
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
+const auth = getAuth(app);
 
 // Globálne premenné
 let currentMonth, currentYear, decimalPlaces, employeeName, hourlyWage, taxRate;
@@ -301,7 +347,7 @@ function register() {
   clearValidationError(emailInput);
   clearValidationError(passwordInput);
 
-  auth.createUserWithEmailAndPassword(emailValidation.value, passwordValidation.value)
+  createUserWithEmailAndPassword(auth, emailValidation.value, passwordValidation.value)
     .then(() => {
       showSafeAlert("Registrácia úspešná!");
     })
@@ -334,7 +380,7 @@ function login() {
   clearValidationError(emailInput);
   clearValidationError(passwordInput);
 
-  auth.signInWithEmailAndPassword(emailValidation.value, passwordInput.value)
+  signInWithEmailAndPassword(auth, emailValidation.value, passwordInput.value)
     .then(() => {
       showSafeAlert("Prihlásenie úspešné!");
     })
@@ -349,7 +395,7 @@ function logout() {
   localStorage.removeItem('lastAuthUser');
   localStorage.setItem('offlineMode', 'false');
 
-  auth.signOut()
+  signOut(auth)
     .then(() => {
       showSafeAlert("Odhlásenie úspešné!");
     })
@@ -377,7 +423,7 @@ function forgotPassword() {
     return;
   }
 
-  auth.sendPasswordResetEmail(emailValidation.value)
+  sendPasswordResetEmail(auth, emailValidation.value)
     .then(() => {
       showSafeAlert("Odkaz na obnovenie hesla bol odoslaný na vašu e-mailovú adresu.");
     })
@@ -388,26 +434,12 @@ function forgotPassword() {
 }
 
 // ========================================
-// INIT APP - Zapnutie Firestore persistence a Auth
+// INIT APP - Auth State Change listener
 // ========================================
-async function initApp() {
-  // KROK 1: Zapni Firestore offline persistence (IndexedDB)
-  // MUSÍ byť zavolané PRED prvým použitím Firestore (onSnapshot, get, set, atď.)
-  try {
-    await db.enablePersistence({ synchronizeTabs: true });
-  } catch (err) {
-    if (err.code === 'failed-precondition') {
-      console.warn('[Firestore] Persistence nejde: viac tabov.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('[Firestore] Persistence nepodporovaná.');
-    } else {
-      console.warn('[Firestore] Persistence error:', err);
-    }
-  }
-
-  // KROK 2: Nastav Auth State Change listener
+// Poznámka: Firestore persistence je nastavená pri inicializácii (persistentLocalCache)
+function initApp() {
   // Auth State Change with Offline Support
-  auth.onAuthStateChanged(user => {
+  onAuthStateChanged(auth, user => {
   const authContainer = document.getElementById('auth-container');
   const calculatorContainer = document.getElementById('calculator-container');
 
@@ -475,10 +507,10 @@ async function initApp() {
     setupFirestoreListener();
 
     const uid = user.uid;
-    const userDocRef = db.collection("users").doc(uid);
-    userDocRef.get().then(userDocSnap => {
-      if (!userDocSnap.exists) {
-        userDocRef.set({ email: user.email, createdAt: new Date().toISOString() }, { merge: true })
+    const userDocRef = doc(db, "users", uid);
+    getDoc(userDocRef).then(userDocSnap => {
+      if (!userDocSnap.exists()) {
+        setDoc(userDocRef, { email: user.email, createdAt: new Date().toISOString() }, { merge: true })
           .catch(err => console.error("Chyba pri vytváraní dokumentu používateľa:", err));
       }
     }).catch(err => { console.error("Chyba pri kontrole dokumentu:", err); });
@@ -603,22 +635,22 @@ function setupFirestoreListener() {
     currentYear = currentYear ?? now.getFullYear();
   }
 
-  const docPath = `users/${uid}/calculatorData/${currentYear}-${currentMonth}`;
-  const docRef = db.doc(docPath);
+  const yearMonthKey = `${currentYear}-${currentMonth}`;
+  const docRef = doc(db, "users", uid, "calculatorData", yearMonthKey);
 
-  firestoreListenerUnsubscribe = docRef.onSnapshot((docSnap) => {
+  firestoreListenerUnsubscribe = onSnapshot(docRef, (docSnap) => {
     const hasPending = docSnap.metadata.hasPendingWrites;
     const activeElementId = document.activeElement?.id;
 
     // DÔLEŽITÉ: Ak doc neexistuje a snapshot je z cache / sme offline,
     // NESMIEME prepisovať localStorage prázdnymi dátami.
-    if (!docSnap.exists && (docSnap.metadata.fromCache || !navigator.onLine)) {
+    if (!docSnap.exists() && (docSnap.metadata.fromCache || !navigator.onLine)) {
       return;
     }
 
     // Ak ide o náš vlastný zápis, neaktualizujeme UI
     if (hasPending) {
-      if (docSnap.exists) {
+      if (docSnap.exists()) {
         const data = docSnap.data();
         const firebaseDaysData = data.days || [];
         if (!monthData) monthData = {};
@@ -648,7 +680,7 @@ function setupFirestoreListener() {
       return;
     }
 
-    if (docSnap.exists) {
+    if (docSnap.exists()) {
       const data = docSnap.data();
       try {
         const firebaseHourlyWage = data.hourlyWage ?? hourlyWage;
@@ -858,14 +890,14 @@ async function saveToFirebase() {
       decimalPlaces: decimalPlaces || 1,
       employeeName: employeeName || '',
       darkMode: document.body.classList.contains('dark-mode'),
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      timestamp: serverTimestamp()
     };
 
     const yearMonthDoc = `${currentYear}-${currentMonth}`;
     const uid = currentUser.uid;
-    const docRef = db.collection("users").doc(uid).collection("calculatorData").doc(yearMonthDoc);
-    
-    await docRef.set(dataToSave);
+    const docRef = doc(db, "users", uid, "calculatorData", yearMonthDoc);
+
+    await setDoc(docRef, dataToSave);
 
   } catch (error) {
     const safeMessage = handleFirestoreError(error, 'ukladanie');

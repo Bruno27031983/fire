@@ -2,7 +2,7 @@
 
 // Zakaždým, keď niečo zmeníš v kóde (HTML, JS, CSS) alebo v tomto súbore,
 // ZVÝŠ TOTO ČÍSLO (v19 -> v20). Donúti to prehliadač stiahnuť novú verziu.
-const CACHE_VERSION = 'v20';
+const CACHE_VERSION = 'v21';
 const STATIC_CACHE = `brunos-calculator-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `brunos-calculator-runtime-${CACHE_VERSION}`;
 
@@ -16,13 +16,13 @@ const urlsToCache = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  
-  // EXTERNÉ KNIŽNICE (Firebase, PDF, Fonty)
+
+  // EXTERNÉ KNIŽNICE (Firebase Modular SDK, PDF, Fonty)
   'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-check-compat.js',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js',
+  'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js'
 ];
