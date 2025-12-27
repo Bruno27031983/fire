@@ -1328,8 +1328,7 @@ function updateNoteIndicator(day) {
 }
 
 function isTimeValid(timeStr) {
-  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  return timeRegex.test(timeStr);
+  return VALIDATION_RULES.TIME_REGEX.test(timeStr);
 }
 
 // VYLEPŠENÉ input handling s ochranou
@@ -1543,8 +1542,7 @@ function calculateRow(day) {
     return;
   }
 
-  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  if (!timeRegex.test(startTimeStr) && startTimeStr !== '' || !timeRegex.test(endTimeStr) && endTimeStr !== '') {
+  if (!VALIDATION_RULES.TIME_REGEX.test(startTimeStr) && startTimeStr !== '' || !VALIDATION_RULES.TIME_REGEX.test(endTimeStr) && endTimeStr !== '') {
     totalCell.textContent = 'Neplatný čas';
     grossElement.value = '0.00';
     netElement.value = '0.00';
@@ -1663,8 +1661,7 @@ function calculateTotal() {
     const breakTimeInput = document.getElementById(`break-${currentYear}-${currentMonth}-${dayIndex}`);
 
     if (startTimeStr && endTimeStr) {
-      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-      if (timeRegex.test(startTimeStr) && timeRegex.test(endTimeStr)) {
+      if (VALIDATION_RULES.TIME_REGEX.test(startTimeStr) && VALIDATION_RULES.TIME_REGEX.test(endTimeStr)) {
         const breakTime = parseFloat(breakTimeInput?.value) || 0;
         const [startHours, startMinutes] = startTimeStr.split(':').map(Number);
         const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
