@@ -1,5 +1,5 @@
 // Firebase Modular SDK Imports
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import {
   initializeFirestore,
   doc,
@@ -9,7 +9,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   serverTimestamp
-} from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -17,8 +17,8 @@ import {
   signOut,
   sendPasswordResetEmail,
   onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-check.js';
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app-check.js';
 
 // Firebase Config & Init
 const firebaseConfig = {
