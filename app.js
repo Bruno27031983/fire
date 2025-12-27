@@ -1361,7 +1361,8 @@ function handleInput(input, nextId, day) {
   calculateTotal();
   saveToLocalStorage();
 
-  if (input.type === 'tel' && input.value.length === 5 && isTimeValid(input.value)) {
+  // Akceptuje 4 znaky ("8:30") aj 5 znakov ("08:30")
+  if (input.type === 'tel' && input.value.length >= 4 && input.value.length <= 5 && isTimeValid(input.value)) {
     moveNext(input, nextId);
   }
 }
@@ -1485,10 +1486,13 @@ function formatInput(input) {
   
   let value = input.value.replace(/[^\d:]/g, '');
 
+  // 4 číslice bez dvojbodky: "0830" → "08:30"
   if (value.length === 4 && !value.includes(':')) {
     value = value.slice(0, 2) + ':' + value.slice(2);
-  } else if (value.length === 3 && value.charAt(2) !== ':' && parseInt(value.slice(0, 2)) <= 23) {
-    value = value.slice(0, 2) + ':' + value.slice(2);
+  }
+  // 3 číslice bez dvojbodky: "830" → "8:30"
+  else if (value.length === 3 && !value.includes(':')) {
+    value = value.slice(0, 1) + ':' + value.slice(1);
   }
 
   if (value.length > 5) {
@@ -1499,9 +1503,11 @@ function formatInput(input) {
     input.value = value;
   }
 
-  if (value.length > 0 && value.length < 5) {
+  // Validácia: akceptuje "8:30" (4 znaky) aj "08:30" (5 znakov)
+  if (value.length > 0 && value.length < 4) {
+    // Ešte píše, nič nekontroluj
     if (input.style.border !== '') input.style.border = '';
-  } else if (value.length === 5) {
+  } else if (value.length >= 4 && value.length <= 5) {
     if (isTimeValid(value)) {
       if (input.style.border !== '') input.style.border = '';
     } else {
