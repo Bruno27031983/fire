@@ -2,7 +2,7 @@
 
 // Zakaždým, keď niečo zmeníš v kóde (HTML, JS, CSS) alebo v tomto súbore,
 // ZVÝŠ TOTO ČÍSLO (v19 -> v20). Donúti to prehliadač stiahnuť novú verziu.
-const CACHE_VERSION = 'v22';
+const CACHE_VERSION = 'v23';
 const STATIC_CACHE = `brunos-calculator-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `brunos-calculator-runtime-${CACHE_VERSION}`;
 
@@ -37,6 +37,9 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
       .then(() => self.skipWaiting()) // Okamžite aktivuj nový SW
+      .catch((error) => {
+        console.error('[SW] Chyba pri inštalácii:', error);
+      })
   );
 });
 
@@ -57,7 +60,7 @@ self.addEventListener('fetch', (event) => {
       // B) Nemáme to? Stiahni zo siete.
       return fetch(request).then((networkResponse) => {
         // Skontrolujeme, či je odpoveď platná
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic' && networkResponse.type !== 'cors') {
+        if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
           return networkResponse;
         }
 
@@ -75,9 +78,10 @@ self.addEventListener('fetch', (event) => {
         // OPRAVA CHYBY Z KONZOLY:
         // Vrátime "falošnú" odpoveď, aby prehliadač nevyhodil "Uncaught TypeError"
         // 408 Request Timeout je vhodný kód pre offline stav
-        return new Response('Offline - resource not available', { 
-          status: 408, 
-          statusText: 'Request Timeout (Offline)' 
+        return new Response('Offline - resource not available', {
+          status: 408,
+          statusText: 'Request Timeout (Offline)',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
         });
       });
     })
