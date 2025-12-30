@@ -1492,9 +1492,19 @@ function formatInput(input) {
   }
   // 3 číslice bez dvojbodky: "830" → "8:30" (len ak sú minúty platné 00-59)
   // "180" sa neformátuje (80 > 59), počká sa na 4. číslicu → "1800" → "18:00"
+  // "110" sa neformátuje - prvá číslica "1" môže byť začiatok 10:xx - 19:xx
+  // "230" sa neformátuje - "23" je platná hodina, počká sa na "2300" → "23:00"
   else if (value.length === 3 && !value.includes(':')) {
+    const firstDigit = value[0];
+    const secondDigit = value[1];
     const minutes = parseInt(value.slice(1), 10);
-    if (minutes <= 59) {
+
+    // Neformátuj ak prvá číslica je "1" (môže byť 10:xx - 19:xx)
+    // Neformátuj ak prvé dve číslice sú 20-23 (platné 2-ciferné hodiny)
+    const couldBeTwoDigitHour = firstDigit === '1' ||
+      (firstDigit === '2' && secondDigit >= '0' && secondDigit <= '3');
+
+    if (!couldBeTwoDigitHour && minutes <= 59) {
       value = value.slice(0, 1) + ':' + value.slice(1);
     }
   }
