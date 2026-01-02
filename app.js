@@ -58,6 +58,7 @@ let firestoreListenerUnsubscribe = null;
 
 // NOVÉ: Tracking aktívnych zmien a timestamp
 let localChangeTimestamp = 0;
+let persistentStorageGranted = null; // null = neznáme, true = povolené, false = zamietnuté
 
 // Helper: Konvertuj Firestore days map na array
 function convertDaysMapToArray(daysData) {
@@ -2035,7 +2036,8 @@ function updateDataSize() {
     const kilobytes = (totalData / 1024).toFixed(2);
     const percentageUsed = Math.min(((totalData / MAX_DATA_SIZE) * 100), 100);
     
-    dataSizeText.textContent = `Lokálne úložisko: ~${kilobytes} KB / ${MAX_DATA_SIZE_KB} KB`;
+    const storageIcon = persistentStorageGranted === true ? '🔒' : (persistentStorageGranted === false ? '🔓' : '');
+    dataSizeText.textContent = `${storageIcon} Lokálne úložisko: ~${kilobytes} KB / ${MAX_DATA_SIZE_KB} KB`;
     dataSizeFill.style.width = `${percentageUsed}%`;
 
     if (percentageUsed > 90) {
@@ -2150,6 +2152,19 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
           console.error('Registrácia ServiceWorker zlyhala: ', error);
         });
+    });
+  }
+
+  // Požiadaj o trvalé úložisko (prevencia pred automatickým vymazaním)
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(granted => {
+      persistentStorageGranted = granted;
+      if (granted) {
+        console.log('[Storage] Trvalé úložisko povolené');
+      } else {
+        console.log('[Storage] Trvalé úložisko zamietnuté, dáta môžu byť vymazané pri nedostatku miesta');
+      }
+      updateDataSize(); // Aktualizuj indikátor
     });
   }
 });
