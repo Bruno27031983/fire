@@ -649,7 +649,7 @@ function setupFirestoreListener() {
     currentYear = currentYear ?? now.getFullYear();
   }
 
-  const yearMonthKey = `${currentYear}-${currentMonth}`;
+  const yearMonthKey = `${currentYear}-${currentMonth + 1}`; // Mesiac 1-12
   const docRef = doc(db, "users", uid, "calculatorData", yearMonthKey);
 
   firestoreListenerUnsubscribe = onSnapshot(docRef, (docSnap) => {
@@ -915,7 +915,7 @@ async function saveToFirebase() {
       timestamp: serverTimestamp()
     };
 
-    const yearMonthDoc = `${currentYear}-${currentMonth}`;
+    const yearMonthDoc = `${currentYear}-${currentMonth + 1}`; // Mesiac 1-12
     const uid = currentUser.uid;
     const docRef = doc(db, "users", uid, "calculatorData", yearMonthDoc);
 
