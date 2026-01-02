@@ -58,6 +58,20 @@ let firestoreListenerUnsubscribe = null;
 
 // NOVÉ: Tracking aktívnych zmien a timestamp
 let localChangeTimestamp = 0;
+
+// Helper: Konvertuj Firestore days map na array
+function convertDaysMapToArray(daysData) {
+  if (!daysData) return [];
+  // Ak je to už array (staré dáta), vráť ako je
+  if (Array.isArray(daysData)) return daysData;
+  // Konvertuj map na array - kľúče "1", "2", ... "31" → index 0, 1, ... 30
+  const result = [];
+  const keys = Object.keys(daysData).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+  keys.forEach(key => {
+    result[key - 1] = daysData[String(key)];
+  });
+  return result;
+}
 let isUserEditing = false;
 let editingTimeout = null;
 let pendingChanges = new Set(); // Track ktoré polia sa práve menia
@@ -652,7 +666,7 @@ function setupFirestoreListener() {
     if (hasPending) {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        const firebaseDaysData = data.days || [];
+        const firebaseDaysData = convertDaysMapToArray(data.days);
         if (!monthData) monthData = {};
         if (!monthData[currentYear]) monthData[currentYear] = {};
         monthData[currentYear][currentMonth] = firebaseDaysData.map(day => ({
@@ -688,7 +702,7 @@ function setupFirestoreListener() {
         const firebaseDecimalPlaces = data.decimalPlaces ?? decimalPlaces;
         const firebaseEmployeeName = data.employeeName ?? employeeName;
         const firebaseDarkMode = data.darkMode ?? document.body.classList.contains('dark-mode');
-        const firebaseDaysData = data.days || [];
+        const firebaseDaysData = convertDaysMapToArray(data.days);
 
         hourlyWage = firebaseHourlyWage;
         taxRate = firebaseTaxRatePercent / 100;
@@ -875,21 +889,29 @@ async function saveToFirebase() {
   try {
     localChangeTimestamp = Date.now(); // Zaznamenaj čas lokálnej zmeny
 
-    const currentMonthWorkData = ((monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || []).map(day => ({
-      start: day.start || '',
-      end: day.end || '',
-      breakTime: day.breakTime || '',
-      note: day.note || '',
-      noteVisible: day.noteVisible === true
-    }));
+    // Konvertuj array na map s kľúčmi "1", "2", ... "31" pre Firestore rules
+    const daysArray = (monthData && monthData[currentYear] && monthData[currentYear][currentMonth]) || [];
+    const daysMap = {};
+    daysArray.forEach((day, index) => {
+      const dayKey = String(index + 1); // Kľúče "1", "2", ... "31"
+      daysMap[dayKey] = {
+        start: day.start || '',
+        end: day.end || '',
+        breakTime: day.breakTime || '',
+        note: day.note || '',
+        noteVisible: day.noteVisible === true
+      };
+    });
 
     const dataToSave = {
-      days: currentMonthWorkData,
+      days: daysMap,
       hourlyWage: hourlyWage || 10,
       taxRate: (taxRate * 100) || 2,
       decimalPlaces: decimalPlaces || 1,
       employeeName: employeeName || '',
       darkMode: document.body.classList.contains('dark-mode'),
+      currentMonth: currentMonth + 1, // Firestore rules očakávajú 1-12
+      currentYear: currentYear,
       timestamp: serverTimestamp()
     };
 
