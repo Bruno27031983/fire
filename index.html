@@ -3,86 +3,163 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bruno's Calculator - Presun na novú adresu</title>
+  <title>Bruno's Calculator s Firebase Auth</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="theme-color" content="#4CAF50">
+
+  <!-- Security Headers - OWASP Recommendations -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://www.google.com https://apis.google.com;
+    style-src 'self' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+    img-src 'self' https: data: blob:;
+    connect-src 'self'
+      https://*.firebaseio.com
+      https://*.googleapis.com
+      https://firestore.googleapis.com
+      https://identitytoolkit.googleapis.com
+      https://securetoken.googleapis.com
+      https://www.google.com
+      https://www.gstatic.com
+      https://cdnjs.cloudflare.com;
+    frame-src https://www.google.com https://recaptcha.google.com https://*.firebaseapp.com;
+    worker-src 'self' https://www.google.com https://www.gstatic.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    upgrade-insecure-requests;
+  ">
+
+  <!-- OWASP Secure Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="no-referrer">
+
+  <!-- POZNÁMKA: Nasledujúce CSP direktívy a security headers MUSIA byť nastavené cez HTTP server (nefungujú v meta tag): -->
+  <!-- CSP frame-ancestors 'none';  - prevencia clickjacking (ignorované v meta, len HTTP header!) -->
+  <!-- X-Frame-Options: DENY  - legacy fallback pre staré browsery -->
+  <!-- Strict-Transport-Security: max-age=31536000; includeSubDomains; preload  - HTTPS only -->
+  <!-- Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()  - feature policy -->
+
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext" rel="stylesheet">
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    .notice-container {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      padding: 40px;
-      max-width: 500px;
-      text-align: center;
-    }
-    .notice-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      color: #333;
-      margin-bottom: 20px;
-      font-size: 24px;
-    }
-    .notice-text {
-      color: #555;
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 30px;
-    }
-    .date {
-      font-weight: bold;
-      color: #764ba2;
-    }
-    .new-link {
-      display: inline-block;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-decoration: none;
-      padding: 15px 30px;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: bold;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .new-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase SDK sa načíta cez ES modules v app.js -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"
+          integrity="sha384-hVYGjWhcAm6Fac3s8m/cTlPbzTHKbLHP6cP7E6RyjlsSjdhVawaMBcd74JAmm1GV"
+          crossorigin="anonymous"></script>
 </head>
 <body>
-  <div class="notice-container">
-    <div class="notice-icon">📢</div>
-    <h1>Vážení používatelia</h1>
-    <p class="notice-text">
-      Od <span class="date">10. januára 2026</span> prechádzame na novú adresu.
-      <br><br>
-      Aplikácia Bruno's Calculator bude dostupná výhradne na novej adrese.
-      Prejdite na novú adresu.
-      <br><br>
-      S pozdravom Bruno
-    </p>
-    <a href="https://bruno-3cee2.web.app" class="new-link">
-      Prejsť na novú adresu
-    </a>
+  <div id="auth-container" class="hidden">
+    <h1>Prihlásenie / Registrácia</h1>
+    <div id="auth-message">Žiadny používateľ nie je prihlásený.</div>
+    <div id="auth-forms">
+      <h2>Registrácia</h2>
+      <input type="email" id="registerEmail" placeholder="Email">
+      <input type="password" id="registerPassword" placeholder="Heslo">
+      <button id="registerBtn">Registrovať</button>
+      <h2>Prihlásenie</h2>
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Heslo">
+      <button id="loginBtn">Prihlásiť sa</button>
+      <a id="forgot-password-link">Zabudli ste heslo?</a>
+    </div>
   </div>
+  <div id="calculator-container" class="container hidden">
+    <div class="autor-info">Vytvoril Bruno</div>
+    <h1 id="mainTitle">Bruno's Calculator</h1>
+    <h2 id="welcomeMessage"></h2>
+    <div class="settings">
+        <div>
+            <label for="monthSelect">Mesiac: </label>
+            <select id="monthSelect">
+                <option value="0">Január</option>
+                <option value="1">Február</option>
+                <option value="2">Marec</option>
+                <option value="3">Apríl</option>
+                <option value="4">Máj</option>
+                <option value="5">Jún</option>
+                <option value="6">Júl</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">Október</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select>
+        </div>
+
+        <details class="collapsible-settings">
+            <summary>Ďalšie nastavenia</summary>
+            <div class="collapsible-content">
+                <div>
+                    <label for="employeeNameInput">Meno pracovníka: </label>
+                    <input type="text" id="employeeNameInput" placeholder="Zadajte meno pracovníka">
+                </div>
+                <div>
+                    <label for="hourlyWageInput">Hodinová mzda (€): </label>
+                    <input type="number" id="hourlyWageInput" value="10" min="0" step="0.1">
+                </div>
+                <div>
+                    <label for="taxRateInput">Daňové percento (%): </label>
+                    <input type="number" id="taxRateInput" value="2" min="0" step="0.1">
+                </div>
+                <div>
+                    <label for="yearSelect">Rok: </label>
+                    <select id="yearSelect"></select>
+                </div>
+                <div>
+                    <label for="decimalPlacesSelect">Počet desatinných miest: </label>
+                    <select id="decimalPlacesSelect">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <button id="toggleDarkModeBtn" class="btn highlight">Prepínať tmavý režim</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Deň</th>
+            <th>Príchod</th>
+            <th>Odchod</th>
+            <th>Prestávka</th>
+            <th>Odpracované</th>
+            <th>Hrubá Mzda (€)</th>
+            <th>Čistá Mzda (€)</th>
+            <th class="th-note">Poznámka</th>
+            <th>Akcia</th>
+          </tr>
+        </thead>
+        <tbody id="workDays"></tbody>
+      </table>
+    </div>
+    <div id="totalSalary"></div>
+    <div id="dataSizeContainer">
+      <div id="dataSizeText">Lokálne úložisko: ~0.00 KB / 4096 KB</div>
+      <div id="dataSizeBar"><div id="dataSizeFill"></div></div>
+    </div>
+    <div class="btn-container">
+      <button id="resetAllBtn" class="btn reset-btn">Resetovať všetko</button>
+      <button id="exportPDFBtn" class="btn export-btn">Exportovať do PDF</button>
+      <button id="sendPDFBtn" class="btn export-btn">Odoslať</button>
+      <button id="restoreBackupBtn" class="btn restore-btn">Obnoviť zálohu</button>
+      <button id="createBackupBtn" class="btn backup-btn">Vytvoriť zálohu</button>
+      <button id="logout-btn" class="btn reset-btn">Odhlásiť sa</button>
+    </div>
+  </div>
+  <div id="saveNotification"></div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
+
