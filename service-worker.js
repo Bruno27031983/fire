@@ -2,7 +2,7 @@
 
 // Zakaždým, keď niečo zmeníš v kóde (HTML, JS, CSS) alebo v tomto súbore,
 // ZVÝŠ TOTO ČÍSLO (v19 -> v20). Donúti to prehliadač stiahnuť novú verziu.
-const CACHE_VERSION = 'v33';
+const CACHE_VERSION = 'v34';
 const STATIC_CACHE = `brunos-calculator-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `brunos-calculator-runtime-${CACHE_VERSION}`;
 
@@ -103,4 +103,5 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => self.clients.claim()) // Prevezmi kontrolu nad stránkou ihneď
   );
+
 });
