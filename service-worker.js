@@ -2,7 +2,7 @@
 
 // Zakaždým, keď niečo zmeníš v kóde (HTML, JS, CSS) alebo v tomto súbore,
 // ZVÝŠ TOTO ČÍSLO (v19 -> v20). Donúti to prehliadač stiahnuť novú verziu.
-const CACHE_VERSION = 'v37';
+const CACHE_VERSION = 'v38';
 const STATIC_CACHE = `brunos-calculator-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `brunos-calculator-runtime-${CACHE_VERSION}`;
 
@@ -14,8 +14,8 @@ const urlsToCache = [
   './styles.css',
   './app.js',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  './icons/icon-192.webp',
+  './icons/icon-512.webp',
 
   // EXTERNÉ KNIŽNICE (Firebase Modular SDK, PDF, Fonty)
   'https://fonts.googleapis.com/css2?family=Roboto&display=swap&subset=latin-ext',
